@@ -59,8 +59,8 @@ static int verbose;
 struct umascan_args {
 	const char *vmcore; // Core dump file name
 	const char *kernel; // Kernel image (symbol)
-	FILE *fd;  		      // Extra input file argument (depends on mode)
-	int mode; 					// Application mode
+	FILE *fd;						// Extra input file argument (depends on mode)
+	int mode;						// Application mode
 	kvm_t *kd;					// kvm description
 	int verbose;				// Verbose mode
 	int debug;					// Debug level (usually 0)
@@ -211,7 +211,7 @@ kernel_from_vmcore(const char * vmcore)
 	/*
    * Copied from kgdb/main.c
    **/
- 	
+	
 	/*
 	 * If there's a kernel image right here in the crash directory, then
 	 * use it.  The kernel image is either called kernel.<nr> or is in a
@@ -225,7 +225,7 @@ kernel_from_vmcore(const char * vmcore)
 		}
 		if (S_ISDIR(st.st_mode)) {
 			snprintf(path, sizeof(path), "%s/kernel.%d/kernel",
-			    crashdir, nr);
+					crashdir, nr);
 			if (stat(path, &st) == 0 && S_ISREG(st.st_mode)) {
 				return strdup(path);
 			}
@@ -256,7 +256,7 @@ kernel_from_vmcore(const char * vmcore)
 			if (stat(path, &st) == -1 || !S_ISREG(st.st_mode)) {
 				path[l - 6] = '\0';
 				if (stat(path, &st) == -1 ||
-				    !S_ISREG(st.st_mode))
+						!S_ISREG(st.st_mode))
 					break;
 			}
 			break;
@@ -336,7 +336,7 @@ main(int argc, char *argv[])
 		char * path = strdup(argv[optind++]); 
     args.fd = fopen(path, "r");
 		if (args.fd && verbose)
-  		warnx("input file: %s", path);
+			warnx("input file: %s", path);
 	}
 
 	// if no argument file, use stdin
@@ -348,15 +348,15 @@ main(int argc, char *argv[])
 		errx(EX_NOINPUT, "kvm_open: %s", kvm_geterr(kd));
 
 	if (args.verbose) {
-  	warnx("core file: %s", args.vmcore);
-  	warnx("kernel image: %s", args.kernel);
+		warnx("core file: %s", args.vmcore);
+		warnx("kernel image: %s", args.kernel);
 	}
 
 	if (kvm_nlist(kd, ksymbols) != 0)
 		err(EX_NOINPUT, "kvm_nlist");
 
 	if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
-	    ksymbols[KSYM_UMA_KEGS].n_value == 0)
+			ksymbols[KSYM_UMA_KEGS].n_value == 0)
 		errx(EX_DATAERR, "kvm_nlist return");
 
 	uintptr_t paddr;
