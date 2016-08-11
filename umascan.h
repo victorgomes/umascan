@@ -34,41 +34,41 @@
 #define CRASHDIR "/var/crash"
 #define KERNFILE "/usr/obj/usr/src/sys/GENERIC/kernel.debug"
 
-#define KSYM_UMA_KEGS		0
-#define KSYM_MP_MAXCPUS	1
-#define KSYM_MP_MAXID		2 
-#define	KSYM_ALLCPUS		3
-#define	KSYM_ALLPROC		4
-#define	KSYM_DUMPPCB		5
-#define	KSYM_DUMPTID		6
-#define	KSYM_STOPPED_CPUS 7
-#define	KSYM_ZOMBPROC		8
+#define KSYM_UMA_KEGS   0
+#define KSYM_MP_MAXCPUS 1
+#define KSYM_MP_MAXID   2 
+#define KSYM_ALLCPUS    3
+#define KSYM_ALLPROC    4
+#define KSYM_DUMPPCB    5
+#define KSYM_DUMPTID    6
+#define KSYM_STOPPED_CPUS 7
+#define KSYM_ZOMBPROC   8
 
 extern struct nlist ksymbols[];
 
 struct kthr {
-	uintptr_t paddr;
-	uintptr_t kaddr;
-	uintptr_t kstack;
-	uintptr_t pcb;
-	int tid;
-	int pid;
-	u_char cpu;
-	SLIST_ENTRY(kthr) k_link;
+  uintptr_t paddr;
+  uintptr_t kaddr;
+  uintptr_t kstack;
+  uintptr_t pcb;
+  int tid;
+  int pid;
+  u_char cpu;
+  SLIST_ENTRY(kthr) k_link;
 };
 
 typedef void (*scan_update)(uintptr_t, void*);
 
 struct scan {
-	// uma_slabs
-	scan_update fullslabs;
-	scan_update partslabs;
-	scan_update freeslabs;
-	// uma_buckets
-	scan_update buckets;
-	// uma_cache
-	scan_update allocbuckets;
-	scan_update freebuckets;
+  // uma_slabs
+  scan_update fullslabs;
+  scan_update partslabs;
+  scan_update freeslabs;
+  // uma_buckets
+  scan_update buckets;
+  // uma_cache
+  scan_update allocbuckets;
+  scan_update freebuckets;
 };
 
 int kread (kvm_t *kd, void *addr, void *buf, size_t size);
@@ -76,11 +76,11 @@ int kread_symbol (kvm_t *kd, int index, void *buf, size_t size);
 int kread_string(kvm_t *kd, const void *addr, char *buf, int buflen);
 
 void scan_slab (kvm_t *kd, struct uma_slab *usp, size_t slabsize,
-								scan_update update, void *args);
+                scan_update update, void *args);
 void scan_bucket (kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1, 
-									size_t bucketsize, scan_update update, void *args);
+                  size_t bucketsize, scan_update update, void *args);
 void scan_bucketlist (kvm_t *kd, struct uma_bucket *ubp, size_t bucketsize, 
-									scan_update update, void *args);
+                  scan_update update, void *args);
 void scan_uma(kvm_t *kd, struct scan *update, void *args);
 
 #endif // _UMA_SCAN_H_
