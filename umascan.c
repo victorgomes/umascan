@@ -27,11 +27,12 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/cpuset.h>
+#include <sys/proc.h>
 
 #define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
 #include <vm/vm.h>
 #include <vm/vm_page.h>
-
 #include <vm/uma.h>
 #include <vm/uma_int.h>
 
@@ -49,17 +50,28 @@
 #include "umascan.h"
 
 struct nlist ksymbols[] = {
-  { .n_name = "_uma_kegs" },
+#define KSYM_UMA_KEGS     0
+  { .n_name = "_uma_kegs", .n_value = 0 },
+#define KSYM_MP_MAXCPUS   1
   { .n_name = "_mp_maxcpus" },
+#define KSYM_MP_MAXID     2 
   { .n_name = "_mp_maxid" },
+#define KSYM_ALLCPUS      3
   { .n_name = "_all_cpus" },
+#define KSYM_ALLPROC      4
   { .n_name = "_allproc" },
+#define KSYM_DUMPPCB      5
   { .n_name = "_dumppcb" },
+#define KSYM_DUMPTID      6
   { .n_name = "_dumptid" },
+#define KSYM_STOPPED_CPUS 7
   { .n_name = "_stopped_cpus" },
+#define KSYM_ZOMBPROC     8
   { .n_name = "_zombproc" },
   { .n_name = "" },
 };
+
+#define KSYM_INITIALISED (ksymbols[0].n_value != 0)
 
 static char k_name[MEMTYPE_MAXNAME];
 
@@ -109,6 +121,103 @@ kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
   /* Truncate. */
   buf[i-1] = '\0';
   return (0);
+}
+
+static void
+init_ksym(kvm_t *kd)
+{
+  if (kvm_nlist(kd, ksymbols) != 0)
+    err(EX_NOINPUT, "kvm_nlist");
+
+  if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
+      ksymbols[KSYM_UMA_KEGS].n_value == 0)
+    errx(EX_DATAERR, "kvm_nlist return");
+}
+
+int
+init_masterkeg(kvm_t *kd, struct uma_keg* uk)
+{
+  if (!KSYM_INITIALISED)
+    init_ksym(kd);
+  kread_symbol(kd, KSYM_UMA_KEGS, uk, sizeof(struct uma_keg));
+  return 0;
+}
+
+int
+init_coreinfo(kvm_t *kd, struct coreinfo* cinfo)
+{
+  int cpusetsize;
+
+  if (!KSYM_INITIALISED)
+    init_ksym(kd);
+
+  kread_symbol(kd, KSYM_ALLPROC, &cinfo->allproc, sizeof(cinfo->allproc));
+  printf("allproc addr: 0x%lx\n", cinfo->allproc);
+
+  kread_symbol(kd, KSYM_DUMPPCB, &cinfo->dumppcb, sizeof(cinfo->dumppcb));
+  printf("dumppcb addr: 0x%lx\n", cinfo->dumppcb);
+
+  kread_symbol(kd, KSYM_DUMPTID, &cinfo->dumptid, sizeof(cinfo->dumptid));
+  printf("dumptid: %d\n", cinfo->dumptid);
+
+  CPU_ZERO(&cinfo->stopped_cpus);
+  cpusetsize = sysconf(_SC_CPUSET_SIZE);
+  if (cpusetsize != -1 && (u_long)cpusetsize <= sizeof(cpuset_t))
+    kread_symbol(kd, KSYM_STOPPED_CPUS, &cinfo->stopped_cpus, cpusetsize);
+
+/* TODO: zombproc unused
+  kread_symbol(kd, KSYM_ZOMBPROC, &paddr, sizeof(paddr));
+  printf("zombproc addr: 0x%lx\n", paddr);
+*/
+
+  return 0;
+}
+
+void
+kread_kthr(kvm_t *kd, struct coreinfo *cinfo)
+{
+  struct proc p;
+  struct thread td;
+  struct kthr *kt;
+  uintptr_t addr, paddr = cinfo->allproc;
+
+  while (paddr != 0) {
+    kread(kd, (void *)paddr, &p, sizeof(p));
+    addr = (uintptr_t)TAILQ_FIRST(&p.p_threads);
+
+    while (addr != 0) {
+      kread(kd, (void *)addr, &td, sizeof(td));
+
+      kt = malloc(sizeof(struct kthr));
+
+      if (td.td_tid == cinfo->dumptid)
+        kt->pcb = cinfo->dumppcb;
+      else if (td.td_state == TDS_RUNNING &&
+                CPU_ISSET(td.td_oncpu, &cinfo->stopped_cpus))
+        ; // pcb on running cpus (only when online)
+      else
+        kt->pcb = (uintptr_t)td.td_pcb;
+
+      kt->kstack = td.td_kstack;
+      kt->tid = td.td_tid;
+      kt->pid = p.p_pid;
+      kt->paddr = paddr;
+      kt->cpu = td.td_oncpu;
+
+      printf("kthread {\n");
+      printf("\t address: 0x%lx\n", kt->paddr);
+      printf("\t stack address: 0x%lx\n", kt->kstack);
+      printf("\t PCB address: 0x%lx\n", kt->pcb);
+      printf("\t tid: %d\n", kt->tid);
+      printf("\t pid: %d\n", kt->pid);
+      printf("\t cpu: %d\n", kt->cpu);
+      printf("}\n");
+
+      addr = (uintptr_t)TAILQ_NEXT(&td, td_plist);
+    }
+    paddr = (uintptr_t)LIST_NEXT(&p, p_list);
+  }
+
 }
 
 void

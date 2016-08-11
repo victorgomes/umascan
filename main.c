@@ -27,11 +27,11 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/cpuset.h>
 
-#define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
+#define LIBMEMSTAT
 #include <vm/vm.h>
 #include <vm/vm_page.h>
-
 #include <vm/uma.h>
 #include <vm/uma_int.h>
 
@@ -49,13 +49,6 @@
 
 #include "umascan.h"
 
-struct kthr *curkthr;
-static cpuset_t stopped_cpus;
-static uintptr_t dumppcb;
-
-char k_name[MEMTYPE_MAXNAME];
-static int verbose;
-
 struct umascan_args {
   const char *vmcore; // Core dump file name
   const char *kernel; // Kernel image (symbol)
@@ -66,65 +59,6 @@ struct umascan_args {
   int debug;          // Debug level (usually 0)
 };
 
-struct pointer {
-  uintptr_t addr;
-  int fullcount;
-  int partcount;
-  int freecount;
-  int zonefull;
-  int fullcache;
-  int freecache;
-  uint64_t refc;
-  SLIST_ENTRY(pointer) p_link;
-};
-
-typedef struct pointer pointer_t;
-
-SLIST_HEAD(pointerlist, pointer);
-
-static void
-create_pointerlist(FILE * addrfd, struct pointerlist * head)
-{
-  uintptr_t addr;
-  SLIST_INIT(head);
-  while (fscanf(addrfd, "%lx", &addr) != EOF) {
-    pointer_t * p = malloc(sizeof(pointer_t));
-    p->addr = addr;
-    p->fullcount = 0;
-    p->freecount = 0;
-    p->zonefull = 0;
-    p->fullcache = 0;
-    p->freecache = 0;
-    p->refc = -1;
-    SLIST_INSERT_HEAD(head, p, p_link);
-  }
-}
-
-static void
-free_pointerlist(struct pointerlist * head)
-{
-  pointer_t * p;
-  SLIST_FOREACH(p, head, p_link) {
-    free(p);  
-  }
-}
-
-static void
-print_pointerlist(struct pointerlist *head)
-{
-  pointer_t * p;
-  SLIST_FOREACH(p, head, p_link) {
-    printf("0x%lx:\n", p->addr);
-    printf("\t\tReference count: %ld\n", p->refc);
-    printf("\t\tfullcount: %d\n", p->fullcount);
-    printf("\t\tpartcount: %d\n", p->partcount);
-    printf("\t\tfreecount: %d\n", p->freecount);
-    printf("\t\tzonefull: %d\n", p->zonefull);
-    printf("\t\tfullcache: %d\n", p->fullcache);
-    printf("\t\tfreecache: %d\n", p->freecache);
-  }
-}
-
 static void
 usage()
 {
@@ -133,34 +67,6 @@ usage()
           getprogname());
   exit(EX_USAGE);
 }
-
-#define fn_update(field) \
-  void update_##field (uintptr_t data, void *args) \
-  { \
-    struct pointerlist *ps = (struct pointerlist *)args; \
-    pointer_t * p; \
-    SLIST_FOREACH(p, ps, p_link) { \
-      if (data == p->addr && verbose) { \
-        printf("%s\n", k_name); \
-        p->field++; \
-      } \
-    } \
-  }
-
-#define POINTER_TH 0xFFFFF80000000000lu
-static void
-print_pointer (uintptr_t data, void *args)
-{
-  if (data > POINTER_TH)
-    printf("0x%lx\n", data);
-}
-
-static fn_update(fullcount)
-static fn_update(freecount)
-static fn_update(partcount)
-static fn_update(zonefull)
-static fn_update(fullcache)
-static fn_update(freecache)
 
 static const char *
 vmcore_from_dumpnr (int dumpnr)
@@ -335,7 +241,7 @@ main(int argc, char *argv[])
   if (argc > optind) {
     char * path = strdup(argv[optind++]); 
     args.fd = fopen(path, "r");
-    if (args.fd && verbose)
+    if (args.fd && args.verbose)
       warnx("input file: %s", path);
   }
 
@@ -351,121 +257,18 @@ main(int argc, char *argv[])
     warnx("core file: %s", args.vmcore);
     warnx("kernel image: %s", args.kernel);
   }
-
-  if (kvm_nlist(kd, ksymbols) != 0)
-    err(EX_NOINPUT, "kvm_nlist");
-
-  if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
-      ksymbols[KSYM_UMA_KEGS].n_value == 0)
-    errx(EX_DATAERR, "kvm_nlist return");
-
-  uintptr_t paddr;
-
-  kread_symbol(kd, KSYM_ALLPROC, &paddr, sizeof(paddr));
-  printf("allproc addr: 0x%lx\n", paddr);
-
-  kread_symbol(kd, KSYM_DUMPPCB, &dumppcb, sizeof(dumppcb));
-  printf("dumppcb addr: 0x%lx\n", dumppcb);
-
-  int dumptid;  
-  kread_symbol(kd, KSYM_DUMPTID, &dumptid, sizeof(dumptid));
-  printf("dumptid: %d\n", dumptid);
-
-  CPU_ZERO(&stopped_cpus);
-  long cpusetsize = sysconf(_SC_CPUSET_SIZE);
-  if (cpusetsize != -1 && (u_long)cpusetsize <= sizeof(cpuset_t))
-    kread_symbol(kd, KSYM_STOPPED_CPUS, &stopped_cpus, cpusetsize);
-
+ 
+  // if kthr mode
   {
-
-  struct proc p;
-  struct thread td;
-  struct kthr *kt;
-  uintptr_t addr;
-
-  while (paddr != 0) {
-    kread(kd, (void *)paddr, &p, sizeof(p));
-    addr = (uintptr_t)TAILQ_FIRST(&p.p_threads);
-
-    while (addr != 0) {
-      kread(kd, (void *)addr, &td, sizeof(td));
-
-      kt = malloc(sizeof(struct kthr));
-
-      if (td.td_tid == dumptid)
-        kt->pcb = dumppcb;
-      else if (td.td_state == TDS_RUNNING &&
-                CPU_ISSET(td.td_oncpu, &stopped_cpus))
-        ; // pcb on running cpus (only when online)
-      else
-        kt->pcb = (uintptr_t)td.td_pcb;
-
-      kt->kstack = td.td_kstack;
-      kt->tid = td.td_tid;
-      kt->pid = p.p_pid;
-      kt->paddr = paddr;
-      kt->cpu = td.td_oncpu;
-
-      printf("kthread {\n");
-      printf("\t address: 0x%lx\n", kt->paddr);
-      printf("\t stack address: 0x%lx\n", kt->kstack);
-      printf("\t PCB address: 0x%lx\n", kt->pcb);
-      printf("\t tid: %d\n", kt->tid);
-      printf("\t pid: %d\n", kt->pid);
-      printf("\t cpu: %d\n", kt->cpu);
-      printf("}\n");
-
-      addr = (uintptr_t)TAILQ_NEXT(&td, td_plist);
-    }
-    paddr = (uintptr_t)LIST_NEXT(&p, p_list);
+    struct coreinfo cinfo;
+    init_coreinfo(kd, &cinfo);
+    kread_kthr(kd, &cinfo);
   }
 
-  
+  // if scan pointers mode
+  {
+    scan_pointers(kd, args.fd);
   }
-
-
-  kread_symbol(kd, KSYM_ZOMBPROC, &paddr, sizeof(paddr));
-  printf("zombproc addr: 0x%lx\n", paddr);
-  
-  
-
-  // INTERRUPUT: NLIST TESTING
-  //return 0;
-  struct pointerlist ps;
-
-  // fill pointer list
-  create_pointerlist(args.fd, &ps);
-
-  struct scan sc = {
-    .fullslabs = &update_fullcount,
-    .partslabs = &update_partcount,
-    .freeslabs = &update_freecount,
-    .buckets = &update_zonefull,
-    .allocbuckets = &update_fullcache,
-    .freebuckets = &update_freecache
-  };
-
-  scan_uma(kd, &sc, &ps);
-
-  pointer_t * p;
-  SLIST_FOREACH(p, &ps, p_link) {
-    kread(kd, (void*)p->addr, &p->refc, sizeof(int64_t));
-  }
-
-  print_pointerlist(&ps);
-  free_pointerlist(&ps);
-/*
-  struct scan sc = {
-    .fullslabs = &print_pointer,
-    .partslabs = &print_pointer,
-    .freeslabs = &print_pointer,
-    .buckets = &print_pointer,
-    .allocbuckets = &print_pointer,
-    .freebuckets = &print_pointer
-  };
-  scan_uma(kd, &sc, NULL);
-
-*/
 
   return (0);
 }

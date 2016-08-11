@@ -28,23 +28,10 @@
 #ifndef _UMASCAN_H_
 #define _UMASCAN_H_
 
-#include <sys/cpuset.h>
-#include <sys/proc.h>
+#include <sys/types.h>
+#include <kvm.h>
 
 #define CRASHDIR "/var/crash"
-#define KERNFILE "/usr/obj/usr/src/sys/GENERIC/kernel.debug"
-
-#define KSYM_UMA_KEGS   0
-#define KSYM_MP_MAXCPUS 1
-#define KSYM_MP_MAXID   2 
-#define KSYM_ALLCPUS    3
-#define KSYM_ALLPROC    4
-#define KSYM_DUMPPCB    5
-#define KSYM_DUMPTID    6
-#define KSYM_STOPPED_CPUS 7
-#define KSYM_ZOMBPROC   8
-
-extern struct nlist ksymbols[];
 
 struct kthr {
   uintptr_t paddr;
@@ -55,6 +42,18 @@ struct kthr {
   int pid;
   u_char cpu;
   SLIST_ENTRY(kthr) k_link;
+};
+
+struct coreinfo {
+  struct uma_keg *masterkeg;
+  int maxcpus;
+  int mp_maxid;
+  uintptr_t allproc;
+  uintptr_t zombproc; // unused
+  uintptr_t dumppcb;
+  int dumptid;
+  cpuset_t stopped_cpus;
+  struct kthr *dumpkthr;
 };
 
 typedef void (*scan_update)(uintptr_t, void*);
@@ -71,9 +70,14 @@ struct scan {
   scan_update freebuckets;
 };
 
+int init_masterkeg(kvm_t *kd, struct uma_keg* uk);
+int init_coreinfo (kvm_t *kd, struct coreinfo* cinfo);
+
 int kread (kvm_t *kd, void *addr, void *buf, size_t size);
 int kread_symbol (kvm_t *kd, int index, void *buf, size_t size);
 int kread_string(kvm_t *kd, const void *addr, char *buf, int buflen);
+
+void kread_kthr (kvm_t *kd, struct coreinfo *cinfo);
 
 void scan_slab (kvm_t *kd, struct uma_slab *usp, size_t slabsize,
                 scan_update update, void *args);
@@ -82,5 +86,8 @@ void scan_bucket (kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1,
 void scan_bucketlist (kvm_t *kd, struct uma_bucket *ubp, size_t bucketsize, 
                   scan_update update, void *args);
 void scan_uma(kvm_t *kd, struct scan *update, void *args);
+
+
+int scan_pointers (kvm_t *kd, FILE *fd);
 
 #endif // _UMA_SCAN_H_

@@ -4,7 +4,7 @@ WARNS?=	3
 
 CFLAGS=-g
 
-SRCS= umascan.c main.c
+SRCS= umascan.c slabs.c main.c
 
 DPADD=	${LIBKVM}
 LDADD=	-lkvm
