@@ -1,0 +1,86 @@
+/*-
+ * Copyright (c) 2016 Victor Gomes
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ */
+
+#ifndef _UMASCAN_H_
+#define _UMASCAN_H_
+
+#include <sys/cpuset.h>
+#include <sys/proc.h>
+
+#define CRASHDIR "/var/crash"
+#define KERNFILE "/usr/obj/usr/src/sys/GENERIC/kernel.debug"
+
+#define KSYM_UMA_KEGS		0
+#define KSYM_MP_MAXCPUS	1
+#define KSYM_MP_MAXID		2 
+#define	KSYM_ALLCPUS		3
+#define	KSYM_ALLPROC		4
+#define	KSYM_DUMPPCB		5
+#define	KSYM_DUMPTID		6
+#define	KSYM_STOPPED_CPUS 7
+#define	KSYM_ZOMBPROC		8
+
+extern struct nlist ksymbols[];
+
+struct kthr {
+	uintptr_t paddr;
+	uintptr_t kaddr;
+	uintptr_t kstack;
+	uintptr_t pcb;
+	int tid;
+	int pid;
+	u_char cpu;
+	SLIST_ENTRY(kthr) k_link;
+};
+
+typedef void (*scan_update)(uintptr_t, void*);
+
+struct scan {
+	// uma_slabs
+	scan_update fullslabs;
+	scan_update partslabs;
+	scan_update freeslabs;
+	// uma_buckets
+	scan_update buckets;
+	// uma_cache
+	scan_update allocbuckets;
+	scan_update freebuckets;
+};
+
+int kread (kvm_t *kd, void *addr, void *buf, size_t size);
+int kread_symbol (kvm_t *kd, int index, void *buf, size_t size);
+int kread_string(kvm_t *kd, const void *addr, char *buf, int buflen);
+
+void scan_slab (kvm_t *kd, struct uma_slab *usp, size_t slabsize,
+								scan_update update, void *args);
+void scan_bucket (kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1, 
+									size_t bucketsize, scan_update update, void *args);
+void scan_bucketlist (kvm_t *kd, struct uma_bucket *ubp, size_t bucketsize, 
+									scan_update update, void *args);
+void scan_uma(kvm_t *kd, struct scan *update, void *args);
+
+#endif // _UMA_SCAN_H_
