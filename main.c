@@ -49,21 +49,29 @@
 
 #include "umascan.h"
 
+int debug; // Debug level (usually 0)
+
+enum mode_t {
+  M_NONE,
+  M_QUERY_KTHR,
+  M_QUERY_MHDR,
+  M_SCAN
+};
+
 struct umascan_args {
   const char *vmcore; // Core dump file name
   const char *kernel; // Kernel image (symbol)
   FILE *fd;           // Extra input file argument (depends on mode)
-  int mode;           // Application mode
+  mode_t mode;        // Application mode
   kvm_t *kd;          // kvm description
   int verbose;        // Verbose mode
-  int debug;          // Debug level (usually 0)
 };
 
 static void
 usage()
 {
   fprintf(stderr,
-          "usage: %s [-v] [-n dumpnr | -c core] [-k kernel] addrs\n",
+          "usage: %s [-v] [-n dumpnr | -c core]  (-q string | -s) [-k kernel] [addrs]\n",
           getprogname());
   exit(EX_USAGE);
 }
@@ -180,33 +188,48 @@ int
 main(int argc, char *argv[])
 {
   kvm_t *kd;
+  char *s;;;
   int ch, dumpnr = -1;
+
+  debug = 0;
   
   struct umascan_args args = { 
     .vmcore = NULL,
     .kernel = NULL,
     .verbose = 0,
-    .debug = 0
   };
 
-  while ((ch = getopt(argc, argv, "hvn:c:k:")) != -1) {
+  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:s")) != -1) {
     switch (ch) {
     case 'v':
       args.verbose = 1;
       break;
-    case 'n': {
-      char *s;
+    case 'n': 
       dumpnr = strtol(optarg, &s, 0);
       if (dumpnr < 0 || *s == '\0') {
         warnx("option %c: invalid kernel dump number", optopt);
         usage();
-      }}
+      }
       break;
     case 'k':
       args.kernel = strdup(optarg);
       break;
     case 'c':
       args.vmcore = strdup(optarg);
+      break;
+    case 'q':
+      if (strcmp(optarg, "kthr") == 0)
+        args.mode = M_QUERY_KTHR;
+      else if (strcmp(optarg, "mhdr") == 0)
+        args.mode = M_QUERY_MHDR;
+      else
+        usage();
+      break;
+    case 's':
+      args.mode = M_SCAN;
+      break;
+    case 'd':
+      debug = strtol(optarg, &s, 0);
       break;
     case 'h':
     case '?':
@@ -225,6 +248,11 @@ main(int argc, char *argv[])
   if (args.vmcore == NULL && dumpnr >= 0)
     args.vmcore = vmcore_from_dumpnr(dumpnr);
   
+  if (args.vmcore == NULL && args.mode == M_QUERY_MHDR) {
+    warnx("specify minidump core with flag -c");
+    usage();
+  }
+
   // if still no core, use live memory
   if (args.vmcore == NULL)
     args.vmcore = _PATH_MEM;
@@ -258,16 +286,28 @@ main(int argc, char *argv[])
     warnx("kernel image: %s", args.kernel);
   }
  
-  // if kthr mode
+  switch(args.mode) {
+  case M_QUERY_KTHR:
   {
     struct coreinfo cinfo;
     init_coreinfo(kd, &cinfo);
     kread_kthr(kd, &cinfo);
+    print_kthr(&cinfo);
+    break;
   }
-
-  // if scan pointers mode
+  case M_QUERY_MHDR:
   {
+    struct coreinfo cinfo;
+    cinfo.kd = kd;
+    print_mhdr(&cinfo);
+    break;
+  }
+  case (M_SCAN):
     scan_pointers(kd, args.fd);
+    break;
+  case (M_NONE):
+  default:
+    usage();
   }
 
   return (0);

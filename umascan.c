@@ -30,6 +30,8 @@
 #include <sys/cpuset.h>
 #include <sys/proc.h>
 
+#include <machine/pcb.h>
+
 #define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
 #include <vm/vm.h>
 #include <vm/vm_page.h>
@@ -48,6 +50,8 @@
 #include <unistd.h>
 
 #include "umascan.h"
+
+extern int debug;
 
 struct nlist ksymbols[] = {
 #define KSYM_UMA_KEGS     0
@@ -73,13 +77,20 @@ struct nlist ksymbols[] = {
 
 #define KSYM_INITIALISED (ksymbols[0].n_value != 0)
 
-static char k_name[MEMTYPE_MAXNAME];
+#define SLIST_FIRSTP(head)    ((uintptr_t)SLIST_FIRST(head))
+#define SLIST_NEXTP(p, link)  ((uintptr_t)SLIST_NEXT(p, link))
+
+#define LIST_FIRSTP(head)     ((uintptr_t)LIST_FIRST(head))
+#define LIST_NEXTP(p, link)   ((uintptr_t)LIST_NEXT(p, link))
+
+#define TAILQ_FIRSTP(head)     ((uintptr_t)TAILQ_FIRST(head))
+#define TAILQ_NEXTP(p, link)   ((uintptr_t)TAILQ_NEXT(p, link))
 
 int
-kread(kvm_t *kd, void *addr, void *buf, size_t size)
+kread(kvm_t *kd, uintptr_t addr, void *buf, size_t size)
 {
   ssize_t ret;
-  ret = kvm_read(kd, (uintptr_t)addr, buf, size);
+  ret = kvm_read(kd, addr, buf, size);
   if (ret < 0)
     err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
@@ -150,15 +161,19 @@ init_coreinfo(kvm_t *kd, struct coreinfo* cinfo)
 
   if (!KSYM_INITIALISED)
     init_ksym(kd);
+  cinfo->kd = kd;
 
   kread_symbol(kd, KSYM_ALLPROC, &cinfo->allproc, sizeof(cinfo->allproc));
-  printf("allproc addr: 0x%lx\n", cinfo->allproc);
+  if (debug > 0)
+    printf("allproc addr: 0x%lx\n", cinfo->allproc);
 
   kread_symbol(kd, KSYM_DUMPPCB, &cinfo->dumppcb, sizeof(cinfo->dumppcb));
-  printf("dumppcb addr: 0x%lx\n", cinfo->dumppcb);
+  if (debug > 0)
+    printf("dumppcb addr: 0x%lx\n", cinfo->dumppcb);
 
   kread_symbol(kd, KSYM_DUMPTID, &cinfo->dumptid, sizeof(cinfo->dumptid));
-  printf("dumptid: %d\n", cinfo->dumptid);
+  if (debug > 0)
+    printf("dumptid: %d\n", cinfo->dumptid);
 
   CPU_ZERO(&cinfo->stopped_cpus);
   cpusetsize = sysconf(_SC_CPUSET_SIZE);
@@ -180,13 +195,15 @@ kread_kthr(kvm_t *kd, struct coreinfo *cinfo)
   struct thread td;
   struct kthr *kt;
   uintptr_t addr, paddr = cinfo->allproc;
+  
+  SLIST_INIT(&cinfo->kthrs);
 
   while (paddr != 0) {
-    kread(kd, (void *)paddr, &p, sizeof(p));
-    addr = (uintptr_t)TAILQ_FIRST(&p.p_threads);
+    kread(kd, paddr, &p, sizeof(p));
+    addr = TAILQ_FIRSTP(&p.p_threads);
 
     while (addr != 0) {
-      kread(kd, (void *)addr, &td, sizeof(td));
+      kread(kd, addr, &td, sizeof(td));
 
       kt = malloc(sizeof(struct kthr));
 
@@ -194,73 +211,87 @@ kread_kthr(kvm_t *kd, struct coreinfo *cinfo)
         kt->pcb = cinfo->dumppcb;
       else if (td.td_state == TDS_RUNNING &&
                 CPU_ISSET(td.td_oncpu, &cinfo->stopped_cpus))
-        ; // pcb on running cpus (only when online)
+        err(-1, "pcb on running cpus (only when online)");
       else
         kt->pcb = (uintptr_t)td.td_pcb;
 
       kt->kstack = td.td_kstack;
+      kt->kstack_pages = td.td_kstack_pages;
       kt->tid = td.td_tid;
       kt->pid = p.p_pid;
       kt->paddr = paddr;
       kt->cpu = td.td_oncpu;
 
-      printf("kthread {\n");
-      printf("\t address: 0x%lx\n", kt->paddr);
-      printf("\t stack address: 0x%lx\n", kt->kstack);
-      printf("\t PCB address: 0x%lx\n", kt->pcb);
-      printf("\t tid: %d\n", kt->tid);
-      printf("\t pid: %d\n", kt->pid);
-      printf("\t cpu: %d\n", kt->cpu);
-      printf("}\n");
-
-      addr = (uintptr_t)TAILQ_NEXT(&td, td_plist);
+      SLIST_INSERT_HEAD(&cinfo->kthrs, kt, k_link);
+      addr = TAILQ_NEXTP(&td, td_plist);
     }
-    paddr = (uintptr_t)LIST_NEXT(&p, p_list);
+    paddr = LIST_NEXTP(&p, p_list);
   }
 
 }
 
 void
-scan_slab(kvm_t *kd, struct uma_slab *usp, size_t slabsize,
+print_kthr(struct coreinfo *cinfo)
+{
+  struct kthr *kt;
+  SLIST_FOREACH (kt, &cinfo->kthrs, k_link) {
+      struct pcb pcb;
+      kread(cinfo->kd, kt->pcb, &pcb, sizeof(struct pcb));
+    
+      printf("kthread {\n"
+              "\taddress: 0x%lx\n"
+              "\tkstack: 0x%lx\n"
+              "\tkstack pages: %d\n"
+              "\tPCB address: 0x%lx\n"
+              "\ttid: %d\n"
+              "\tpid: %d\n"
+              "\tcpu: %d\n"
+              "\trsp: %lx\n"
+              "\trbp: %lx\n"
+              "}\n",
+        kt->paddr, kt->kstack, kt->kstack_pages, kt->pcb, kt->tid, kt->pid,
+        kt->cpu, pcb.pcb_rsp, pcb.pcb_rbp);
+  }
+}
+
+void
+scan_slab(kvm_t *kd, uintptr_t usp, size_t slabsize,
           scan_update update, void *args)
 {
   struct uma_slab us;
-/*  
-  if (verbose)
-    printf("\tFull slabs:\n");
-*/
+
   if (update == NULL)
     return;
 
-  while (usp != NULL) {
-    /*
-    if (verbose)
+  while (usp != 0) {
+    
+    if (debug > 1)
       printf("\t\tslab: 0x%lx\n", (uintptr_t) usp);
-    */
-
+    
     kread(kd, usp, &us, sizeof(struct uma_slab));
 
     uint us_len = slabsize/sizeof(uintptr_t);
     uintptr_t us_data [us_len];
 
-    kread(kd, us.us_data, &us_data, slabsize);
+    kread(kd, (uintptr_t) us.us_data, &us_data, slabsize);
 
     for (uint i = 0; i < us_len; i++)
     {
       (*update)(us_data[i], args);
     }
 
-    usp = LIST_NEXT(&us, us_link);
+    usp = LIST_NEXTP(&us, us_link);
   }
 }
 
 void
-scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1,
+scan_bucket(kvm_t *kd, uintptr_t ubp, struct uma_bucket *ub1,
             size_t bucketsize, scan_update update, void *args)
 {
   struct uma_bucket * ub2;
+  size_t ub_len;
 
-  if (ubp == NULL || update == NULL)
+  if (ubp == 0 || update == NULL)
     return;
 
   // get a bucket (without data table)
@@ -271,16 +302,15 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1,
       return;
 
   // get new bucket (with data table)
-  size_t ub_len = sizeof(struct uma_bucket) + ub1->ub_cnt*sizeof(uintptr_t);
+  ub_len = sizeof(struct uma_bucket) + ub1->ub_cnt*sizeof(uintptr_t);
   ub2 = malloc(ub_len);
   kread (kd, ubp, ub2, ub_len);
 
   // read the data of each bucket
-  uint16_t i;
-  for (i = 0; i < ub2->ub_cnt; i++) {
+  for (uint16_t i = 0; i < ub2->ub_cnt; i++) {
     uint32_t ub_num = bucketsize/sizeof(uintptr_t);
     uintptr_t ub_data[ub_num];
-    kread(kd, ub2->ub_bucket[i], &ub_data, bucketsize);
+    kread(kd, (uintptr_t)ub2->ub_bucket[i], &ub_data, bucketsize);
 
     uint32_t j;
     for (j = 0; j < ub_num; j++) {
@@ -292,16 +322,16 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub1,
 }
 
 void
-scan_bucketlist(kvm_t *kd, struct uma_bucket *ubp, size_t bucketsize,
+scan_bucketlist(kvm_t *kd, uintptr_t ubp, size_t bucketsize,
                 scan_update update, void *args)
 {
   struct uma_bucket ub;
   if (update == NULL)
     return;
 
-  while (ubp != NULL) {
+  while (ubp != 0) {
     scan_bucket(kd, ubp, &ub, bucketsize, update, args);
-    ubp = LIST_NEXT(&ub, ub_link);
+    ubp = LIST_NEXTP(&ub, ub_link);
   }
 }
 
@@ -311,6 +341,7 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
   LIST_HEAD(, uma_keg) uma_kegs;
 
   // Read symbols
+  init_ksym(kd);
   kread_symbol(kd, KSYM_ALLCPUS, &all_cpus, sizeof(all_cpus));
   kread_symbol(kd, KSYM_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus));
   kread_symbol(kd, KSYM_MP_MAXID, &mp_maxid, sizeof(mp_maxid));
@@ -324,34 +355,34 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
   uint uz_len = sizeof(struct uma_zone) + mp_maxid * sizeof(struct uma_cache);
   struct uma_zone * uz = malloc(uz_len);
 
-  struct uma_keg *kzp, kz;
-  for (kzp = LIST_FIRST(&uma_kegs); kzp != NULL; kzp =
-      LIST_NEXT(&kz, uk_link)) {
+  uintptr_t kzp;
+  struct uma_keg kz;
+  for (kzp = LIST_FIRSTP(&uma_kegs); kzp != 0; kzp =
+      LIST_NEXTP(&kz, uk_link)) {
 
     kread(kd, kzp, &kz, sizeof(kz));
-    /*
-    if (verbose) {
+   
+    if (debug > 1) {
       printf("keg: 0x%lx\n", (uintptr_t)kzp);
       printf("\tslab size: %hu\n", kz.uk_slabsize);
       printf("\tobject size: %d\n", kz.uk_size);
     }
-    */
 
-    //char k_name [MEMTYPE_MAXNAME];
+    char k_name [MEMTYPE_MAXNAME];
     kread_string(kd, kz.uk_name, k_name, MEMTYPE_MAXNAME);
 
     // full/part/free slabs
-    scan_slab(kd, LIST_FIRST(&kz.uk_full_slab),
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_full_slab),
               kz.uk_slabsize, update->fullslabs, args);
-    scan_slab(kd, LIST_FIRST(&kz.uk_part_slab),
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_part_slab),
               kz.uk_slabsize, update->partslabs, args);
-    scan_slab(kd, LIST_FIRST(&kz.uk_free_slab),
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_free_slab),
               kz.uk_slabsize, update->freeslabs, args);
 
     // zones
-    struct uma_zone * uzp;
-    for (uzp = LIST_FIRST(&kz.uk_zones); uzp != NULL;
-         uzp = LIST_NEXT(uz, uz_link)) {
+    uintptr_t uzp;
+    for (uzp = LIST_FIRSTP(&kz.uk_zones); uzp != 0;
+         uzp = LIST_NEXTP(uz, uz_link)) {
 
       // get zone (without or with caches)
       kread (kd, uzp, uz, 
@@ -361,7 +392,7 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
       char z_name[MEMTYPE_MAXNAME];
       kread_string(kd, uz->uz_name, z_name, MEMTYPE_MAXNAME);
 
-      scan_bucketlist(kd, LIST_FIRST(&uz->uz_buckets),
+      scan_bucketlist(kd, LIST_FIRSTP(&uz->uz_buckets),
                   uz->uz_size, update->buckets, args);
 
       // if zone has caches
@@ -374,9 +405,9 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
           
           struct uma_cache * uc = &uz->uz_cpu[cpu];
           struct uma_bucket ub;
-          scan_bucket(kd, uc->uc_allocbucket, &ub,
+          scan_bucket(kd, (uintptr_t)uc->uc_allocbucket, &ub,
                       uz->uz_size, update->allocbuckets, args);
-          scan_bucket(kd, uc->uc_freebucket, &ub,
+          scan_bucket(kd, (uintptr_t)uc->uc_freebucket, &ub,
                       uz->uz_size, update->freebuckets, args);
           
         }

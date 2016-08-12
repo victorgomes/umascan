@@ -141,7 +141,7 @@ scan_pointers(kvm_t *kd, FILE *fd)
 
   pointer_t * p;
   SLIST_FOREACH(p, &ps, p_link) {
-    kread(kd, (void*)p->addr, &p->refc, sizeof(int64_t));
+    kread(kd, p->addr, &p->refc, sizeof(int64_t));
   }
 
   print_pointerlist(&ps);
