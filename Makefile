@@ -1,6 +1,7 @@
 PROG=	umascan
 MAN=
 WARNS?=	3
+.OBJDIR=${CANONICALOBJDIR}
 
 CFLAGS=-g
 

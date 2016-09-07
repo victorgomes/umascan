@@ -69,19 +69,27 @@ struct coreinfo {
   SLIST_HEAD(, kthr) kthrs;
 };
 
-typedef void (*scan_update)(uintptr_t, void*);
-
-struct scan {
-  // uma_slabs
-  scan_update fullslabs;
-  scan_update partslabs;
-  scan_update freeslabs;
-  // uma_buckets
-  scan_update buckets;
-  // uma_cache
-  scan_update allocbuckets;
-  scan_update freebuckets;
+enum us_type {
+  FULL_SLABS,
+  PART_SLABS,
+  FREE_SLABS
 };
+
+struct scaninfo {
+  struct uma_keg* uk; 
+  struct uma_zone* uz;
+  struct uma_slab* us;
+  char * uk_name;
+  // value of the current data being scanned
+  uint64_t data;
+  // bounds of current item being scanned
+  uintptr_t itemp; // pointer to the beginning of the item 
+  uintptr_t size;  // size of item
+  // private args to be passed when scanning
+  void * priv;
+};
+
+typedef void (*umascan_t)(struct scaninfo*);
 
 int init_masterkeg(kvm_t *kd, struct uma_keg* uk);
 int init_coreinfo (kvm_t *kd, struct coreinfo* cinfo);
@@ -92,13 +100,14 @@ int kread_string(kvm_t *kd, const void *addr, char *buf, int buflen);
 
 void kread_kthr (kvm_t *kd, struct coreinfo *cinfo);
 
-void scan_slab (kvm_t *kd, uintptr_t usp, size_t slabsize,
-                scan_update update, void *args);
+void scan_slab (kvm_t *kd, uintptr_t usp, struct scaninfo* si, umascan_t upd, enum us_type ust);
+/*
 void scan_bucket (kvm_t *kd, uintptr_t, struct uma_bucket *ub1, 
-                  size_t bucketsize, scan_update update, void *args);
+                  size_t bucketsize, umascan_update update, void *args);
 void scan_bucketlist (kvm_t *kd, uintptr_t ubp, size_t bucketsize, 
-                  scan_update update, void *args);
-void scan_uma(kvm_t *kd, struct scan *update, void *args);
+                  umascan_update update, void *args);
+*/
+void scan_uma(kvm_t *kd, umascan_t upd, void *args);
 
 
 int scan_pointers (kvm_t *kd, FILE *fd);

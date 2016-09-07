@@ -44,6 +44,7 @@
 #include <sysexits.h>
 #include <memstat.h>
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -254,36 +255,92 @@ print_kthr(struct coreinfo *cinfo)
   }
 }
 
+static void
+print_slab_flags (uint8_t flag)
+{
+#define slab_flag(mask) if (flag & UMA_SLAB_##mask) printf("UMA_SLAB_%s", #mask);
+  slab_flag(BOOT)
+  slab_flag(KMEM)
+  slab_flag(KERNEL)
+  slab_flag(PRIV)
+  slab_flag(OFFP)
+  slab_flag(MALLOC)
+}
+
+static int
+is_pointer (unsigned long p)
+{
+  return (p >> 32) >= 0xFFFFF800;
+}
+
 void
-scan_slab(kvm_t *kd, uintptr_t usp, size_t slabsize,
-          scan_update update, void *args)
+scan_slab(kvm_t *kd, uintptr_t usp, struct scaninfo* si, umascan_t upd, enum us_type ust)
 {
   struct uma_slab us;
 
-  if (update == NULL)
+  if (upd == NULL)
     return;
 
+  uint uk_freecount = 0;
   while (usp != 0) {
     
     if (debug > 1)
       printf("\t\tslab: 0x%lx\n", (uintptr_t) usp);
     
     kread(kd, usp, &us, sizeof(struct uma_slab));
+    si->us = &us;
 
-    uint us_len = slabsize/sizeof(uintptr_t);
-    uintptr_t us_data [us_len];
+//    size_t slabsize = uk->uk_slabsize;
+ //   printf("SIZE: %zd\n", uk->uk_size);
+   // printf("Items per slabs: %zd\n", uk->uk_ipers);
 
-    kread(kd, (uintptr_t) us.us_data, &us_data, slabsize);
+    int us_len = si->uk->uk_size/sizeof(uintptr_t);
+    ///printf("SIZE: %d :: %d\n", uk->uk_size, us_len);
+    uintptr_t us_data [si->uk->uk_ipers * us_len];
 
-    for (uint i = 0; i < us_len; i++)
-    {
-      (*update)(us_data[i], args);
+    kread(kd, (uintptr_t) us.us_data, &us_data, si->uk->uk_ipers * us_len);
+
+/*
+    if (is_pointer(us.us_size)) {
+  //    printf("USLINK: %lx\n", (uintptr_t)us.us_link.le_next);
+    } else {
+      printf("SIZE: %lu\n", us.us_size);
     }
+    // SLABS bounds
+//    printf("SLAB: %lx - %lx\n", (uintptr_t)us.us_data, ((uintptr_t)us.us_data) + (uintptr_t)slabsize);
+*/
 
+    si->size = si->uk->uk_rsize;
+
+    int freecount = 0;
+    for (uint i = 0; i < si->uk->uk_ipers; i++) {
+      // Free slabs
+      if (BIT_ISSET(SLAB_SETSIZE, i, &us.us_free)) {
+        freecount++;
+        continue;
+      }
+
+      si->itemp = (uintptr_t) us.us_data + i*us_len;
+
+      for (uint j = i*us_len; j < (i+1)*us_len; j++) {
+        si->data = us_data[j];
+        (*upd)(si);
+      }
+    }
+    assert (freecount == us.us_freecount);
+
+    uk_freecount += freecount;
     usp = LIST_NEXTP(&us, us_link);
   }
+
+  
+  //printf("SLABTYPE: %d\n", flag);
+  //printf("UKFRECNT: %d\n", uk_freecount);
+  //printf("INKEG: %d\n", uk->uk_free);
+  //if (flag == 2) assert (uk_freecount == uk->uk_free);
 }
 
+/*
 void
 scan_bucket(kvm_t *kd, uintptr_t ubp, struct uma_bucket *ub1,
             size_t bucketsize, scan_update update, void *args)
@@ -335,8 +392,13 @@ scan_bucketlist(kvm_t *kd, uintptr_t ubp, size_t bucketsize,
   }
 }
 
+*/
 void
-scan_uma(kvm_t *kd, struct scan *update, void *args) {
+scan_uma(kvm_t *kd, umascan_t upd, void *args) {
+  struct scaninfo si;
+  si.uk = NULL;
+  si.priv = args;
+
   int all_cpus, mp_maxcpus, mp_maxid;
   LIST_HEAD(, uma_keg) uma_kegs;
 
@@ -352,33 +414,41 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
    * but it is declared as an array of size 1
    * aditional space is hence needed.  
    **/
-  uint uz_len = sizeof(struct uma_zone) + mp_maxid * sizeof(struct uma_cache);
-  struct uma_zone * uz = malloc(uz_len);
+  //uint uz_len = sizeof(struct uma_zone) + mp_maxid * sizeof(struct uma_cache);
+  //struct uma_zone * uz = malloc(uz_len);
 
   uintptr_t kzp;
   struct uma_keg kz;
   for (kzp = LIST_FIRSTP(&uma_kegs); kzp != 0; kzp =
       LIST_NEXTP(&kz, uk_link)) {
-
+    
     kread(kd, kzp, &kz, sizeof(kz));
-   
+    si.uk = &kz;
+
     if (debug > 1) {
       printf("keg: 0x%lx\n", (uintptr_t)kzp);
       printf("\tslab size: %hu\n", kz.uk_slabsize);
       printf("\tobject size: %d\n", kz.uk_size);
     }
 
-    char k_name [MEMTYPE_MAXNAME];
-    kread_string(kd, kz.uk_name, k_name, MEMTYPE_MAXNAME);
-
+    char uk_name [MEMTYPE_MAXNAME];
+    kread_string(kd, kz.uk_name, uk_name, MEMTYPE_MAXNAME);
+    si.uk_name = uk_name;
+    
     // full/part/free slabs
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_full_slab),
-              kz.uk_slabsize, update->fullslabs, args);
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_part_slab),
-              kz.uk_slabsize, update->partslabs, args);
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_free_slab),
-              kz.uk_slabsize, update->freeslabs, args);
+    scan_slab (kd, LIST_FIRSTP(&kz.uk_full_slab), &si, upd, FULL_SLABS);
 
+/*
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_full_slab), update->fullslabs, args, 1);
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_part_slab),
+              &kz, update->partslabs, args, 2);
+    scan_slab(kd, LIST_FIRSTP(&kz.uk_free_slab),
+              &kz, update->freeslabs, args, 3);
+*/
+
+
+
+/*
     // zones
     uintptr_t uzp;
     for (uzp = LIST_FIRSTP(&kz.uk_zones); uzp != 0;
@@ -389,9 +459,17 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
         (kz.uk_flags & UMA_ZFLAG_INTERNAL) ?
           sizeof(struct uma_zone) : uz_len);
     
+      // the zone's keg needs to point to our keg
+      assert (kzp == (uintptr_t)(uz->uz_klink.kl_keg));
+
       char z_name[MEMTYPE_MAXNAME];
       kread_string(kd, uz->uz_name, z_name, MEMTYPE_MAXNAME);
 
+      // if zone is the head of the list
+      // then the keg and zone names are the same
+      if (uzp == LIST_FIRSTP(&kz.uk_zones))
+        assert (kz.uk_name == uz->uz_name);
+      
       scan_bucketlist(kd, LIST_FIRSTP(&uz->uz_buckets),
                   uz->uz_size, update->buckets, args);
 
@@ -414,5 +492,6 @@ scan_uma(kvm_t *kd, struct scan *update, void *args) {
       }
 
     } // zones
+*/
   } // kegs
 }

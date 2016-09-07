@@ -38,126 +38,123 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "umascan.h"
 
-struct pointer {
-  uintptr_t addr;
-  int fullcount;
-  int partcount;
-  int freecount;
-  int zonefull;
-  int fullcache;
-  int freecache;
-  uint64_t refc;
-  SLIST_ENTRY(pointer) p_link;
+struct uz_info {
+  const char *uz_name;
+  int uz_count;
+  SLIST_ENTRY(uz_info) uz_link;
 };
 
-typedef struct pointer pointer_t;
+struct p_info {
+  uintptr_t p_addr;
+  int64_t p_refc;
+  int p_count;
+  const char *p_zone;
+  SLIST_HEAD(,uz_info) uz_link;
+  SLIST_ENTRY(p_info) p_link;
+};
 
-SLIST_HEAD(pointerlist, pointer);
+SLIST_HEAD(plist, p_info);
 
 static void
-create_pointerlist(FILE * addrfd, struct pointerlist * head)
+create_plist(FILE * addrfd, struct plist * head)
 {
   uintptr_t addr;
   SLIST_INIT(head);
   while (fscanf(addrfd, "%lx", &addr) != EOF) {
-    pointer_t * p = malloc(sizeof(pointer_t));
-    p->addr = addr;
-    p->fullcount = 0;
-    p->partcount = 0;
-    p->freecount = 0;
-    p->zonefull = 0;
-    p->fullcache = 0;
-    p->freecache = 0;
-    p->refc = -1;
+    struct p_info * p = malloc(sizeof(struct p_info));
+    p->p_addr = addr;
+    p->p_zone = NULL;
+    p->p_count = 0;
+    p->p_refc = -1;
+    SLIST_INIT(&p->uz_link);
     SLIST_INSERT_HEAD(head, p, p_link);
   }
 }
 
 static void
-free_pointerlist(struct pointerlist * head)
+free_plist(struct plist * head)
 {
-  pointer_t * p;
+  struct p_info * p;
   SLIST_FOREACH(p, head, p_link) {
     free(p);  
   }
 }
 
 static void
-print_pointerlist(struct pointerlist *head)
+print_plist(struct plist *head)
 {
-  pointer_t * p;
+  struct p_info * p;
   SLIST_FOREACH(p, head, p_link) {
-    printf("0x%lx:\n", p->addr);
-    printf("\t\tReference count: %ld\n", p->refc);
-    printf("\t\tfullcount: %d\n", p->fullcount);
-    printf("\t\tpartcount: %d\n", p->partcount);
-    printf("\t\tfreecount: %d\n", p->freecount);
-    printf("\t\tzonefull: %d\n", p->zonefull);
-    printf("\t\tfullcache: %d\n", p->fullcache);
-    printf("\t\tfreecache: %d\n", p->freecache);
+    printf("0x%lx:\n", p->p_addr);
+    printf("\tzone name: %s\n", p->p_zone ? p->p_zone : "<unknown>");
+    
+    printf("\tref count: %ld\n", p->p_refc);
+    printf("\ttotal count: %d\n", p->p_count);
+
+    struct uz_info *uz;
+    SLIST_FOREACH(uz, &p->uz_link, uz_link) {
+      printf("\t\t%s: %d\n", uz->uz_name, uz->uz_count);
+    }
   }
 }
 
-#define fn_update(field) \
-  void update_##field (uintptr_t data, void *args) \
-  { \
-    struct pointerlist *ps = (struct pointerlist *)args; \
-    pointer_t * p; \
-    SLIST_FOREACH(p, ps, p_link) { \
-      if (data == p->addr) { \
-        p->field++; \
-      } \
-    } \
-  }
+static void update (struct scaninfo* si)
+{
+  struct plist *ps = (struct plist *)si->priv;
+  struct p_info * p;
+  
+  SLIST_FOREACH(p, ps, p_link) {
+    if (si->itemp <= p->p_addr && p->p_addr < si->itemp + si->size) {
+      p->p_zone = strdup(si->uk_name);
+    }
 
-static fn_update(fullcount)
-static fn_update(freecount)
-static fn_update(partcount)
-static fn_update(zonefull)
-static fn_update(fullcache)
-static fn_update(freecache)
+   if (si->data == p->p_addr) {
+      struct uz_info* uz = NULL;
+      int found = 0;
+
+      p->p_count++;
+
+      if (!(SLIST_EMPTY(&p->uz_link))) {
+        SLIST_FOREACH (uz, (&p->uz_link), uz_link) {
+          if(strcmp(si->uk_name, uz->uz_name) == 0) {
+            uz->uz_count++;
+            found = 1;
+            break;
+          }
+        }
+      }
+
+      if (!found) {
+        uz = malloc(sizeof(struct uz_info));
+        uz->uz_count = 1;
+        uz->uz_name = strdup(si->uk_name);
+        SLIST_INSERT_HEAD(&p->uz_link, uz, uz_link);
+      }       
+    }
+  }
+}
 
 int
 scan_pointers(kvm_t *kd, FILE *fd)
 {
-  struct pointerlist ps;
+  struct plist ps;
 
   // fill pointer list
-  create_pointerlist(fd, &ps);
+  create_plist(fd, &ps);
 
-  struct scan sc = {
-    .fullslabs = &update_fullcount,
-    .partslabs = &update_partcount,
-    .freeslabs = &update_freecount,
-    .buckets = &update_zonefull,
-    .allocbuckets = &update_fullcache,
-    .freebuckets = &update_freecache
-  };
+  scan_uma(kd, &update, &ps);
 
-  scan_uma(kd, &sc, &ps);
-
-  pointer_t * p;
+  struct p_info * p;
   SLIST_FOREACH(p, &ps, p_link) {
-    kread(kd, p->addr, &p->refc, sizeof(int64_t));
+    kread(kd, p->p_addr, &p->p_refc, sizeof(int64_t));
   }
 
-  print_pointerlist(&ps);
-  free_pointerlist(&ps);
-
-/*
-  struct scan sc = {
-    .fullslabs = &print_pointer,
-    .partslabs = &print_pointer,
-    .freeslabs = &print_pointer,
-    .buckets = &print_pointer,
-    .allocbuckets = &print_pointer,
-    .freebuckets = &print_pointer
-  };
-  scan_uma(kd, &sc, NULL);
-*/
+  print_plist(&ps);
+  free_plist(&ps);
 
   return 0;
 }
