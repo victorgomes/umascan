@@ -28,91 +28,46 @@
 #ifndef _UMASCAN_H_
 #define _UMASCAN_H_
 
-#include <sys/types.h>
 #include <sys/cpuset.h>
-#include <sys/queue.h>
-
-#define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
-#include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/uma.h>
 #include <vm/uma_int.h>
 
-#include <kvm.h>
-#include <limits.h>
-#include <stdio.h>
+struct usc_hdl;
+typedef struct usc_hdl* usc_hdl_t;
 
-#define CRASHDIR "/var/crash"
-
-struct kthr {
-  uintptr_t paddr;
-  uintptr_t kaddr;
-  uintptr_t kstack;
-  int kstack_pages;
-  uintptr_t pcb;
-  int tid;
-  int pid;
-  u_char cpu;
-  SLIST_ENTRY(kthr) k_link;
+enum usc_type {
+  USCAN_SLAB,
+  USCAN_BUCKET
 };
 
-struct coreinfo {
-  kvm_t *kd;
-  struct uma_keg *masterkeg;
-  int maxcpus;
-  int mp_maxid;
-  uintptr_t allproc;
-  uintptr_t zombproc; // unused
-  uintptr_t dumppcb;
-  int dumptid;
-  cpuset_t stopped_cpus;
-  SLIST_HEAD(, kthr) kthrs;
-};
-
-enum us_type {
-  FULL_SLABS,
-  PART_SLABS,
-  FREE_SLABS
-};
-
-struct scaninfo {
-  struct uma_keg* uk; 
-  struct uma_zone* uz;
-  struct uma_slab* us;
-  char * uk_name;
+struct usc_info {
+  struct uma_keg* usi_uk; 
+  struct uma_zone* usi_uz;
+  struct uma_slab* usi_us;
+  char * usi_name;
+  enum usc_type usi_type;
   // value of the current data being scanned
-  uint64_t data;
+  uint64_t usi_data;
   // bounds of current item being scanned
-  uintptr_t itemp; // pointer to the beginning of the item 
-  uintptr_t size;  // size of item
+  uintptr_t usi_iaddr; // address of the beginning of the item 
+  uintptr_t usi_size;  // size of item
   // private args to be passed when scanning
-  void * priv;
+  void * usi_arg;
 };
+typedef struct usc_info* usc_info_t;
 
-typedef void (*umascan_t)(struct scaninfo*);
+typedef void (*umascan_t)(usc_info_t);
 
-int init_masterkeg(kvm_t *kd, struct uma_keg* uk);
-int init_coreinfo (kvm_t *kd, struct coreinfo* cinfo);
+/* libumascan */
+usc_hdl_t create_usc_hdl (const char *kernel, const char *core);
+void delete_usc_hdl (usc_hdl_t hdl);
+void memread (usc_hdl_t, const void *addr, void *buf, size_t size);
+void umascan(usc_hdl_t hdl, umascan_t usc, void *args);
 
-int kread (kvm_t *kd, uintptr_t addr, void *buf, size_t size);
-int kread_symbol (kvm_t *kd, int index, void *buf, size_t size);
-int kread_string(kvm_t *kd, const void *addr, char *buf, int buflen);
-
-void kread_kthr (kvm_t *kd, struct coreinfo *cinfo);
-
-void scan_slab (kvm_t *kd, uintptr_t usp, struct scaninfo* si, umascan_t upd, enum us_type ust);
-/*
-void scan_bucket (kvm_t *kd, uintptr_t, struct uma_bucket *ub1, 
-                  size_t bucketsize, umascan_update update, void *args);
-void scan_bucketlist (kvm_t *kd, uintptr_t ubp, size_t bucketsize, 
-                  umascan_update update, void *args);
-*/
-void scan_uma(kvm_t *kd, umascan_t upd, void *args);
-
-
-int scan_pointers (kvm_t *kd, FILE *fd);
-
-void print_kthr(struct coreinfo *cinfo);
-void print_mhdr(struct coreinfo *cinfo);
+/* consumers */
+void kread_kthr (usc_hdl_t hdl);
+void scan_ptrs (usc_hdl_t hdl, FILE *fd);
+void print_kthr (usc_hdl_t hdl);
+void print_mhdr (usc_hdl_t hdl);
 
 #endif // _UMA_SCAN_H_

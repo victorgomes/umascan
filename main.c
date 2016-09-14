@@ -27,19 +27,9 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <sys/cpuset.h>
-
-#define LIBMEMSTAT
-#include <vm/vm.h>
-#include <vm/vm_page.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
 
 #include <err.h>
-#include <kvm.h>
-#include <limits.h>
 #include <sysexits.h>
-#include <memstat.h>
 #include <paths.h>
 
 #include <stdio.h>
@@ -49,23 +39,17 @@
 
 #include "umascan.h"
 
+#define CRASHDIR "/var/crash"
+
 int debug; // Debug level (usually 0)
 
-enum mode_t {
+typedef enum {
   M_NONE,
   M_QUERY_KTHR,
   M_QUERY_MHDR,
-  M_SCAN
-};
-
-struct umascan_args {
-  const char *vmcore; // Core dump file name
-  const char *kernel; // Kernel image (symbol)
-  FILE *fd;           // Extra input file argument (depends on mode)
-  mode_t mode;        // Application mode
-  kvm_t *kd;          // kvm description
-  int verbose;        // Verbose mode
-};
+  M_SCAN_SLABS,
+  M_SCAN_BUCKETS
+} scn_mode_t ;
 
 static void
 usage()
@@ -187,22 +171,18 @@ kernel_from_vmcore(const char * vmcore)
 int
 main(int argc, char *argv[])
 {
-  kvm_t *kd;
-  char *s;;;
-  int ch, dumpnr = -1;
+  FILE *fd;
+  scn_mode_t mode;
+  const char *vmcore = NULL, *kernel = NULL;
+  char *s;
+  int ch, verbose, dumpnr = -1;
 
   debug = 0;
-  
-  struct umascan_args args = { 
-    .vmcore = NULL,
-    .kernel = NULL,
-    .verbose = 0,
-  };
 
-  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:s")) != -1) {
+  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:sb")) != -1) {
     switch (ch) {
     case 'v':
-      args.verbose = 1;
+      verbose = 1;
       break;
     case 'n': 
       dumpnr = strtol(optarg, &s, 0);
@@ -212,21 +192,24 @@ main(int argc, char *argv[])
       }
       break;
     case 'k':
-      args.kernel = strdup(optarg);
+      kernel = strdup(optarg);
       break;
     case 'c':
-      args.vmcore = strdup(optarg);
+      vmcore = strdup(optarg);
       break;
     case 'q':
       if (strcmp(optarg, "kthr") == 0)
-        args.mode = M_QUERY_KTHR;
+        mode = M_QUERY_KTHR;
       else if (strcmp(optarg, "mhdr") == 0)
-        args.mode = M_QUERY_MHDR;
+        mode = M_QUERY_MHDR;
       else
         usage();
       break;
+    case 'b':
+      mode = M_SCAN_BUCKETS;
+      break;
     case 's':
-      args.mode = M_SCAN;
+      mode = M_SCAN_SLABS;
       break;
     case 'd':
       debug = strtol(optarg, &s, 0);
@@ -239,76 +222,73 @@ main(int argc, char *argv[])
   }
 
   // incompatible  argumetns
-  if (dumpnr >= 0 && args.vmcore != NULL) {
+  if (dumpnr >= 0 && vmcore != NULL) {
     warnx("option -n and -c are mutually exclusive");
     usage();      
   }
 
   // try to get core from dump number
-  if (args.vmcore == NULL && dumpnr >= 0)
-    args.vmcore = vmcore_from_dumpnr(dumpnr);
+  if (vmcore == NULL && dumpnr >= 0)
+    vmcore = vmcore_from_dumpnr(dumpnr);
   
-  if (args.vmcore == NULL && args.mode == M_QUERY_MHDR) {
+  if (vmcore == NULL && mode == M_QUERY_MHDR) {
     warnx("specify minidump core with flag -c");
     usage();
   }
 
   // if still no core, use live memory
-  if (args.vmcore == NULL)
-    args.vmcore = _PATH_MEM;
+  if (vmcore == NULL)
+    vmcore = _PATH_MEM;
 
   // try to get kernel image from core
-  if (args.kernel == NULL)
-    args.kernel = kernel_from_vmcore(args.vmcore);
+  if (kernel == NULL)
+    kernel = kernel_from_vmcore(vmcore);
 
   // if no kernel image, use the one from boot
-  if (args.kernel == NULL)
-    args.kernel = getbootfile();
+  if (kernel == NULL)
+    kernel = getbootfile();
 
   // open argument file
   if (argc > optind) {
     char * path = strdup(argv[optind++]); 
-    args.fd = fopen(path, "r");
-    if (args.fd && args.verbose)
+    fd = fopen(path, "r");
+    if (fd && verbose)
       warnx("input file: %s", path);
   }
 
   // if no argument file, use stdin
-  if (args.fd == NULL)
-    args.fd = stdin;
+  if (fd == NULL)
+    fd = stdin;
 
-  kd = kvm_open(args.kernel, args.vmcore, NULL, 0, "kvm");
-  if (kd == NULL)
-    errx(EX_NOINPUT, "kvm_open: %s", kvm_geterr(kd));
+  usc_hdl_t hdl = create_usc_hdl (kernel, vmcore);
 
-  if (args.verbose) {
-    warnx("core file: %s", args.vmcore);
-    warnx("kernel image: %s", args.kernel);
+  if (verbose) {
+    warnx("core file: %s", vmcore);
+    warnx("kernel image: %s", kernel);
   }
  
-  switch(args.mode) {
+  switch(mode) {
   case M_QUERY_KTHR:
   {
-    struct coreinfo cinfo;
-    init_coreinfo(kd, &cinfo);
-    kread_kthr(kd, &cinfo);
-    print_kthr(&cinfo);
+    kread_kthr(hdl);
+    print_kthr(hdl);
     break;
   }
   case M_QUERY_MHDR:
   {
-    struct coreinfo cinfo;
-    cinfo.kd = kd;
-    print_mhdr(&cinfo);
+    print_mhdr(hdl);
     break;
   }
-  case (M_SCAN):
-    scan_pointers(kd, args.fd);
+  case (M_SCAN_SLABS):
+  case (M_SCAN_BUCKETS):
+    scan_ptrs(hdl, fd);
     break;
   case (M_NONE):
   default:
     usage();
   }
+
+  delete_usc_hdl(hdl);
 
   return (0);
 }

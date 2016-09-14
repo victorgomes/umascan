@@ -102,17 +102,17 @@ print_plist(struct plist *head)
   }
 }
 
-static void update (struct scaninfo* si)
+static void update (usc_info_t si)
 {
-  struct plist *ps = (struct plist *)si->priv;
+  struct plist *ps = (struct plist *)si->usi_arg;
   struct p_info * p;
   
   SLIST_FOREACH(p, ps, p_link) {
-    if (si->itemp <= p->p_addr && p->p_addr < si->itemp + si->size) {
-      p->p_zone = strdup(si->uk_name);
+    if (si->usi_iaddr <= p->p_addr && p->p_addr < si->usi_iaddr + si->usi_size) {
+      p->p_zone = strdup(si->usi_name);
     }
 
-   if (si->data == p->p_addr) {
+   if (si->usi_data == p->p_addr) {
       struct uz_info* uz = NULL;
       int found = 0;
 
@@ -120,7 +120,7 @@ static void update (struct scaninfo* si)
 
       if (!(SLIST_EMPTY(&p->uz_link))) {
         SLIST_FOREACH (uz, (&p->uz_link), uz_link) {
-          if(strcmp(si->uk_name, uz->uz_name) == 0) {
+          if(strcmp(si->usi_name, uz->uz_name) == 0) {
             uz->uz_count++;
             found = 1;
             break;
@@ -131,31 +131,29 @@ static void update (struct scaninfo* si)
       if (!found) {
         uz = malloc(sizeof(struct uz_info));
         uz->uz_count = 1;
-        uz->uz_name = strdup(si->uk_name);
+        uz->uz_name = strdup(si->usi_name);
         SLIST_INSERT_HEAD(&p->uz_link, uz, uz_link);
       }       
     }
   }
 }
 
-int
-scan_pointers(kvm_t *kd, FILE *fd)
+void
+scan_ptrs(usc_hdl_t hdl, FILE *fd)
 {
   struct plist ps;
+  //enum mode_t mode = hdl->usc_mode;
 
   // fill pointer list
   create_plist(fd, &ps);
-
-  scan_uma(kd, &update, &ps);
+  umascan(hdl, &update, &ps);
 
   struct p_info * p;
   SLIST_FOREACH(p, &ps, p_link) {
-    kread(kd, p->p_addr, &p->p_refc, sizeof(int64_t));
+    memread(hdl, (void*)p->p_addr, &p->p_refc, sizeof(int64_t));
   }
 
   print_plist(&ps);
   free_plist(&ps);
-
-  return 0;
 }
 

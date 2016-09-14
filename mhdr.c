@@ -28,6 +28,10 @@
 #include <sys/param.h>
 #include <machine/minidump.h>
 
+#include <kvm.h>
+#include <limits.h>
+#include <stdio.h>
+
 #include "umascan.h"
 #include "kvm_private.h"
 
@@ -35,12 +39,17 @@
 struct vmstate {
   int minidump;
   struct minidumphdr hdr;
-  // Other stuff here
+  // Other stuff
+};
+
+struct usc_hdl {
+  kvm_t* usc_kd;
+  // Other stuff  
 };
 
 void
-print_mhdr(struct coreinfo *cinfo) {
-  struct minidumphdr hdr = cinfo->kd->vmst->hdr;
+print_mhdr(struct usc_hdl *hdl) {
+  struct minidumphdr hdr = hdl->usc_kd->vmst->hdr;
   printf("Minidump headear:\n"
     "\tmagic: %s\n"
     "\tversion: %d\n"

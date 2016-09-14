@@ -46,6 +46,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -53,6 +54,27 @@
 #include "umascan.h"
 
 extern int debug;
+
+struct usc_hdl {
+  kvm_t *usc_kd;
+  struct uma_keg *usc_masterkeg;
+  int usc_maxcpus;
+  int usc_maxid;
+  struct proc* usc_allproc;
+  struct proc* usc_zombproc; // unused
+  struct pcb* usc_dumppcb;
+  int usc_dumptid;
+  cpuset_t usc_stopped_cpus;
+
+  /* TODO: this shouldn't be here */
+  SLIST_HEAD(, kthr) usc_kthrs;
+};
+
+enum us_type {
+  FULL_SLABS,
+  PART_SLABS,
+  FREE_SLABS
+};
 
 struct nlist ksymbols[] = {
 #define KSYM_UMA_KEGS     0
@@ -78,28 +100,18 @@ struct nlist ksymbols[] = {
 
 #define KSYM_INITIALISED (ksymbols[0].n_value != 0)
 
-#define SLIST_FIRSTP(head)    ((uintptr_t)SLIST_FIRST(head))
-#define SLIST_NEXTP(p, link)  ((uintptr_t)SLIST_NEXT(p, link))
-
-#define LIST_FIRSTP(head)     ((uintptr_t)LIST_FIRST(head))
-#define LIST_NEXTP(p, link)   ((uintptr_t)LIST_NEXT(p, link))
-
-#define TAILQ_FIRSTP(head)     ((uintptr_t)TAILQ_FIRST(head))
-#define TAILQ_NEXTP(p, link)   ((uintptr_t)TAILQ_NEXT(p, link))
-
-int
-kread(kvm_t *kd, uintptr_t addr, void *buf, size_t size)
+static void
+kread(kvm_t *kd, const void* addr, void *buf, size_t size)
 {
   ssize_t ret;
-  ret = kvm_read(kd, addr, buf, size);
+  ret = kvm_read(kd, (uintptr_t) addr, buf, size);
   if (ret < 0)
     err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
     err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
-  return (0);
 }
 
-int
+static void
 kread_symbol(kvm_t *kd, int index, void *buf, size_t size)
 {
   ssize_t ret;
@@ -111,28 +123,32 @@ kread_symbol(kvm_t *kd, int index, void *buf, size_t size)
     err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
     err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
-  return (0);
 }
 
-int
+static void
 kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
 {
   ssize_t ret;
   int i;
 
   for (i = 0; i < buflen; i++) {
-    ret = kvm_read(kd, (unsigned long)addr + i,
+    ret = kvm_read(kd, (uintptr_t)addr + i,
         &(buf[i]), sizeof(char));
     if (ret < 0)
       err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
     if ((size_t)ret != sizeof(char))
       err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
     if (buf[i] == '\0')
-      return (0);
+      return;
   }
   /* Truncate. */
   buf[i-1] = '\0';
-  return (0);
+}
+
+void
+memread (usc_hdl_t hdl, const void *addr, void *buf, size_t size)
+{
+  kread (hdl->usc_kd, addr, buf, size);
 }
 
 static void
@@ -146,7 +162,7 @@ init_ksym(kvm_t *kd)
     errx(EX_DATAERR, "kvm_nlist return");
 }
 
-int
+static int
 init_masterkeg(kvm_t *kd, struct uma_keg* uk)
 {
   if (!KSYM_INITIALISED)
@@ -155,89 +171,118 @@ init_masterkeg(kvm_t *kd, struct uma_keg* uk)
   return 0;
 }
 
-int
-init_coreinfo(kvm_t *kd, struct coreinfo* cinfo)
+usc_hdl_t
+create_usc_hdl (const char *kernel, const char *core)
 {
+  kvm_t* kd;
+  usc_hdl_t hdl;
   int cpusetsize;
+
+  kd = kvm_open(kernel, core, NULL, 0, "kvm");
+  if (kd == NULL)
+    errx(EX_NOINPUT, "kvm_open: %s", kvm_geterr(kd));
 
   if (!KSYM_INITIALISED)
     init_ksym(kd);
-  cinfo->kd = kd;
 
-  kread_symbol(kd, KSYM_ALLPROC, &cinfo->allproc, sizeof(cinfo->allproc));
+  hdl = malloc(sizeof(struct usc_hdl));
+  hdl->usc_kd = kd;
+
+  kread_symbol(kd, KSYM_ALLPROC, &hdl->usc_allproc, sizeof(hdl->usc_allproc));
   if (debug > 0)
-    printf("allproc addr: 0x%lx\n", cinfo->allproc);
+    printf("allproc addr: 0x%lx\n", (uintptr_t)hdl->usc_allproc);
 
-  kread_symbol(kd, KSYM_DUMPPCB, &cinfo->dumppcb, sizeof(cinfo->dumppcb));
+  kread_symbol(kd, KSYM_DUMPPCB, &hdl->usc_dumppcb, sizeof(hdl->usc_dumppcb));
   if (debug > 0)
-    printf("dumppcb addr: 0x%lx\n", cinfo->dumppcb);
+    printf("dumppcb addr: 0x%lx\n", (uintptr_t)hdl->usc_dumppcb);
 
-  kread_symbol(kd, KSYM_DUMPTID, &cinfo->dumptid, sizeof(cinfo->dumptid));
+  kread_symbol(kd, KSYM_DUMPTID, &hdl->usc_dumptid, sizeof(hdl->usc_dumptid));
   if (debug > 0)
-    printf("dumptid: %d\n", cinfo->dumptid);
+    printf("dumptid: %d\n",  hdl->usc_dumptid);
 
-  CPU_ZERO(&cinfo->stopped_cpus);
+  CPU_ZERO(&hdl->usc_stopped_cpus);
   cpusetsize = sysconf(_SC_CPUSET_SIZE);
   if (cpusetsize != -1 && (u_long)cpusetsize <= sizeof(cpuset_t))
-    kread_symbol(kd, KSYM_STOPPED_CPUS, &cinfo->stopped_cpus, cpusetsize);
+    kread_symbol(kd, KSYM_STOPPED_CPUS, &hdl->usc_stopped_cpus, cpusetsize);
 
 /* TODO: zombproc unused
   kread_symbol(kd, KSYM_ZOMBPROC, &paddr, sizeof(paddr));
   printf("zombproc addr: 0x%lx\n", paddr);
 */
 
-  return 0;
+  return hdl;
 }
 
 void
-kread_kthr(kvm_t *kd, struct coreinfo *cinfo)
+delete_usc_hdl(usc_hdl_t hdl)
 {
-  struct proc p;
-  struct thread td;
+  kvm_close(hdl->usc_kd);
+  free(hdl);
+}
+
+struct kthr {
+  struct proc* paddr;
+  uintptr_t kaddr;
+  uintptr_t kstack;
+  int kstack_pages;
+  struct pcb* pcb;
+  int tid;
+  int pid;
+  u_char cpu;
+  SLIST_ENTRY(kthr) k_link;
+};
+
+void
+kread_kthr(usc_hdl_t hdl)
+{
+  struct proc *p_addr, p;
+  struct thread *td_addr, td;
   struct kthr *kt;
-  uintptr_t addr, paddr = cinfo->allproc;
+  kvm_t *kd = hdl->usc_kd;
   
-  SLIST_INIT(&cinfo->kthrs);
+  p_addr = hdl->usc_allproc;
+  
+  SLIST_INIT(&hdl->usc_kthrs);
 
-  while (paddr != 0) {
-    kread(kd, paddr, &p, sizeof(p));
-    addr = TAILQ_FIRSTP(&p.p_threads);
+  while (p_addr != 0) {
+    kread(kd, p_addr, &p, sizeof(p));
+    td_addr = TAILQ_FIRST(&p.p_threads);
 
-    while (addr != 0) {
-      kread(kd, addr, &td, sizeof(td));
+    while (td_addr != 0) {
+      kread(kd, td_addr, &td, sizeof(td));
 
       kt = malloc(sizeof(struct kthr));
 
-      if (td.td_tid == cinfo->dumptid)
-        kt->pcb = cinfo->dumppcb;
+      if (td.td_tid == hdl->usc_dumptid)
+        kt->pcb = hdl->usc_dumppcb;
       else if (td.td_state == TDS_RUNNING &&
-                CPU_ISSET(td.td_oncpu, &cinfo->stopped_cpus))
+                CPU_ISSET(td.td_oncpu, &hdl->usc_stopped_cpus))
         err(-1, "pcb on running cpus (only when online)");
       else
-        kt->pcb = (uintptr_t)td.td_pcb;
+        kt->pcb = td.td_pcb;
 
       kt->kstack = td.td_kstack;
       kt->kstack_pages = td.td_kstack_pages;
       kt->tid = td.td_tid;
       kt->pid = p.p_pid;
-      kt->paddr = paddr;
+      kt->paddr = p_addr;
       kt->cpu = td.td_oncpu;
 
-      SLIST_INSERT_HEAD(&cinfo->kthrs, kt, k_link);
-      addr = TAILQ_NEXTP(&td, td_plist);
+      SLIST_INSERT_HEAD(&hdl->usc_kthrs, kt, k_link);
+      td_addr = TAILQ_NEXT(&td, td_plist);
     }
-    paddr = LIST_NEXTP(&p, p_list);
+    p_addr = LIST_NEXT(&p, p_list);
   }
 
 }
 
 void
-print_kthr(struct coreinfo *cinfo)
+print_kthr(usc_hdl_t hdl)
 {
   struct kthr *kt;
-  SLIST_FOREACH (kt, &cinfo->kthrs, k_link) {
+  SLIST_FOREACH (kt, &hdl->usc_kthrs, k_link) {
       struct pcb pcb;
-      kread(cinfo->kd, kt->pcb, &pcb, sizeof(struct pcb));
+      kread(hdl->usc_kd, kt->pcb, &pcb, sizeof(struct pcb));
     
       printf("kthread {\n"
               "\taddress: 0x%lx\n"
@@ -250,7 +295,7 @@ print_kthr(struct coreinfo *cinfo)
               "\trsp: %lx\n"
               "\trbp: %lx\n"
               "}\n",
-        kt->paddr, kt->kstack, kt->kstack_pages, kt->pcb, kt->tid, kt->pid,
+        (uintptr_t)kt->paddr, kt->kstack, kt->kstack_pages, (uintptr_t)kt->pcb, kt->tid, kt->pid,
         kt->cpu, pcb.pcb_rsp, pcb.pcb_rbp);
   }
 }
@@ -268,230 +313,233 @@ print_slab_flags (uint8_t flag)
 }
 
 static int
-is_pointer (unsigned long p)
-{
-  return (p >> 32) >= 0xFFFFF800;
-}
-
-void
-scan_slab(kvm_t *kd, uintptr_t usp, struct scaninfo* si, umascan_t upd, enum us_type ust)
+scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us_type ust)
 {
   struct uma_slab us;
+  size_t isize, irsize, ussize;
+  int i, ipers, uk_freecount = 0, us_freecount = 0;
+  uintptr_t *iptr, *iend;
+  uint8_t * us_data;
+  
+  ipers = si->usi_uk->uk_ipers;
+  isize = si->usi_uk->uk_size;
+  irsize = si->usi_uk->uk_rsize;
 
-  if (upd == NULL)
-    return;
+  /* array of items in the slabs */
+  ussize = ipers * isize;
+  us_data = malloc(ussize);
 
-  uint uk_freecount = 0;
-  while (usp != 0) {
-    
-    if (debug > 1)
-      printf("\t\tslab: 0x%lx\n", (uintptr_t) usp);
+  /* the data is smaller or equal to a slab size (due to header) */
+  if (ussize > si->usi_uk->uk_slabsize) {
+    warnx("skipping keg %s: data size too big, slabsize: %d", si->usi_name, si->usi_uk->uk_slabsize);
+    return si->usi_uk->uk_free;
+  }
+
+  while (usp != NULL) {
     
     kread(kd, usp, &us, sizeof(struct uma_slab));
-    si->us = &us;
+    si->usi_us = &us;
 
-//    size_t slabsize = uk->uk_slabsize;
- //   printf("SIZE: %zd\n", uk->uk_size);
-   // printf("Items per slabs: %zd\n", uk->uk_ipers);
+    kread(kd, us.us_data, us_data, ussize);
 
-    int us_len = si->uk->uk_size/sizeof(uintptr_t);
-    ///printf("SIZE: %d :: %d\n", uk->uk_size, us_len);
-    uintptr_t us_data [si->uk->uk_ipers * us_len];
-
-    kread(kd, (uintptr_t) us.us_data, &us_data, si->uk->uk_ipers * us_len);
-
-/*
-    if (is_pointer(us.us_size)) {
-  //    printf("USLINK: %lx\n", (uintptr_t)us.us_link.le_next);
-    } else {
-      printf("SIZE: %lu\n", us.us_size);
-    }
-    // SLABS bounds
-//    printf("SLAB: %lx - %lx\n", (uintptr_t)us.us_data, ((uintptr_t)us.us_data) + (uintptr_t)slabsize);
-*/
-
-    si->size = si->uk->uk_rsize;
-
-    int freecount = 0;
-    for (uint i = 0; i < si->uk->uk_ipers; i++) {
-      // Free slabs
+    for (i = 0; i < ipers; i++) {
+      // is it a free item?
       if (BIT_ISSET(SLAB_SETSIZE, i, &us.us_free)) {
-        freecount++;
+        us_freecount++;
         continue;
       }
 
-      si->itemp = (uintptr_t) us.us_data + i*us_len;
+      si->usi_iaddr = (uintptr_t) us.us_data + i*isize;
+      iptr = (uintptr_t*) (us_data + i*isize);
+      iend = iptr + irsize;
 
-      for (uint j = i*us_len; j < (i+1)*us_len; j++) {
-        si->data = us_data[j];
+      /* let's be sure to not go beyound the size of the array */
+      assert (iptr < (uintptr_t*) (us_data + ussize));
+      
+      if (!upd)
+        continue;
+      
+      while (iptr < iend) {
+        si->usi_data = *iptr;
         (*upd)(si);
+        iptr += sizeof(uintptr_t);
       }
     }
-    assert (freecount == us.us_freecount);
 
-    uk_freecount += freecount;
-    usp = LIST_NEXTP(&us, us_link);
+    /* free slabs do not seem to be using us_freecount field */
+    if (ust != FREE_SLABS && us_freecount != us.us_freecount)
+      warnx("different freecount in slab in the keg %s", si->usi_name);
+
+    uk_freecount += us_freecount;
+    usp = LIST_NEXT(&us, us_link);
   }
-
   
-  //printf("SLABTYPE: %d\n", flag);
-  //printf("UKFRECNT: %d\n", uk_freecount);
-  //printf("INKEG: %d\n", uk->uk_free);
-  //if (flag == 2) assert (uk_freecount == uk->uk_free);
+  free (us_data);
+  return uk_freecount;
 }
 
-/*
-void
-scan_bucket(kvm_t *kd, uintptr_t ubp, struct uma_bucket *ub1,
-            size_t bucketsize, scan_update update, void *args)
+static int
+scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
 {
-  struct uma_bucket * ub2;
   size_t ub_len;
+  //size_t bucketsize = si->usi_uz->uz_size;
 
-  if (ubp == 0 || update == NULL)
-    return;
+  if (ubp == 0)
+    return 0 ;
 
   // get a bucket (without data table)
-  kread (kd, ubp, ub1, sizeof(struct uma_bucket));
+  kread (kd, ubp, ub, sizeof(struct uma_bucket));
 
   // if no data, leave
-  if (ub1->ub_cnt == 0)
-      return;
+  if (ub->ub_cnt == 0)
+      return 0;
 
   // get new bucket (with data table)
-  ub_len = sizeof(struct uma_bucket) + ub1->ub_cnt*sizeof(uintptr_t);
-  ub2 = malloc(ub_len);
-  kread (kd, ubp, ub2, ub_len);
+  void ** ub_bucket;
+  ub_len = sizeof(ub->ub_entries*sizeof(void*));
+  ub_bucket = malloc(ub_len);
 
+  kread (kd, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_len);
+
+/*
   // read the data of each bucket
-  for (uint16_t i = 0; i < ub2->ub_cnt; i++) {
-    uint32_t ub_num = bucketsize/sizeof(uintptr_t);
+  for (int i = 0; i < ub->ub_entries - ub->ub_cnt; i++) {
+    int ub_num = bucketsize/sizeof(uintptr_t);
     uintptr_t ub_data[ub_num];
-    kread(kd, (uintptr_t)ub2->ub_bucket[i], &ub_data, bucketsize);
+    kread(kd, (uintptr_t)ub_bucket[i], &ub_data, bucketsize);
 
-    uint32_t j;
+    int j;
     for (j = 0; j < ub_num; j++) {
-      (*update)(ub_data[j], args);
+      si->usi_data = ub_data[j];
+      if (upd)
+        (*upd)(si);
     }
   }
-  
-  free(ub2);
+*/
+  free (ub_bucket);
+  return ub->ub_cnt;
 }
 
-void
-scan_bucketlist(kvm_t *kd, uintptr_t ubp, size_t bucketsize,
-                scan_update update, void *args)
+static int
+scan_bucketlist(kvm_t *kd, struct uma_bucket *ubp, usc_info_t si, umascan_t upd)
 {
   struct uma_bucket ub;
-  if (update == NULL)
-    return;
 
-  while (ubp != 0) {
-    scan_bucket(kd, ubp, &ub, bucketsize, update, args);
-    ubp = LIST_NEXTP(&ub, ub_link);
+  if (upd == NULL)
+    return 0;
+
+  int ub_cnt = 0;
+  while (ubp != NULL) {
+    ub_cnt += scan_bucket(kd, ubp, &ub, si, upd);
+    ubp = LIST_NEXT(&ub, ub_link);
   }
+
+  return ub_cnt;
 }
 
-*/
 void
-scan_uma(kvm_t *kd, umascan_t upd, void *args) {
-  struct scaninfo si;
-  si.uk = NULL;
-  si.priv = args;
-
-  int all_cpus, mp_maxcpus, mp_maxid;
+umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
+  struct usc_info si;
+  cpuset_t all_cpus;
+  int mp_maxcpus, mp_maxid;
+  long cpusetsize;
+  char uk_name [MEMTYPE_MAXNAME], uz_name [MEMTYPE_MAXNAME];
+  kvm_t* kd;
   LIST_HEAD(, uma_keg) uma_kegs;
+
+  kd = hdl->usc_kd;
+  si.usi_uk = NULL;
+  si.usi_arg = arg;
 
   // Read symbols
   init_ksym(kd);
-  kread_symbol(kd, KSYM_ALLCPUS, &all_cpus, sizeof(all_cpus));
   kread_symbol(kd, KSYM_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus));
   kread_symbol(kd, KSYM_MP_MAXID, &mp_maxid, sizeof(mp_maxid));
   kread_symbol(kd, KSYM_UMA_KEGS, &uma_kegs, sizeof(uma_kegs));
+  
+  cpusetsize = sysconf(_SC_CPUSET_SIZE);
+  if (cpusetsize == -1 || (u_long)cpusetsize > sizeof(cpuset_t))
+    err(MEMSTAT_ERROR_KVM_NOSYMBOL, "bad cpusetsize");
+
+  CPU_ZERO(&all_cpus);  
+  kread_symbol(kd, KSYM_ALLCPUS, &all_cpus, cpusetsize);
 
   /**
    * uma_zone ends in an array of mp_maxid cache entries.
    * but it is declared as an array of size 1
    * aditional space is hence needed.  
    **/
-  //uint uz_len = sizeof(struct uma_zone) + mp_maxid * sizeof(struct uma_cache);
-  //struct uma_zone * uz = malloc(uz_len);
+  size_t uz_len = sizeof(struct uma_zone) + mp_maxid * sizeof(struct uma_cache);
+  struct uma_zone * uz = malloc(uz_len);
 
-  uintptr_t kzp;
-  struct uma_keg kz;
-  for (kzp = LIST_FIRSTP(&uma_kegs); kzp != 0; kzp =
-      LIST_NEXTP(&kz, uk_link)) {
+  struct uma_keg *ukp, uk;
+  for (ukp = LIST_FIRST(&uma_kegs); ukp != 0; ukp =
+      LIST_NEXT(&uk, uk_link)) {
+    int mt_free = 0;
     
-    kread(kd, kzp, &kz, sizeof(kz));
-    si.uk = &kz;
+    kread(kd, ukp, &uk, sizeof(uk));
+    si.usi_uk = &uk;
 
-    if (debug > 1) {
-      printf("keg: 0x%lx\n", (uintptr_t)kzp);
-      printf("\tslab size: %hu\n", kz.uk_slabsize);
-      printf("\tobject size: %d\n", kz.uk_size);
-    }
-
-    char uk_name [MEMTYPE_MAXNAME];
-    kread_string(kd, kz.uk_name, uk_name, MEMTYPE_MAXNAME);
-    si.uk_name = uk_name;
+    kread_string(kd, uk.uk_name, uk_name, MEMTYPE_MAXNAME);
+    si.usi_name = uk_name;
+    si.usi_size = uk.uk_size;
     
     // full/part/free slabs
-    scan_slab (kd, LIST_FIRSTP(&kz.uk_full_slab), &si, upd, FULL_SLABS);
+    uint32_t uk_freecount = 0;
+    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_full_slab), &si, upd, FULL_SLABS);
+    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
+    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
 
-/*
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_full_slab), update->fullslabs, args, 1);
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_part_slab),
-              &kz, update->partslabs, args, 2);
-    scan_slab(kd, LIST_FIRSTP(&kz.uk_free_slab),
-              &kz, update->freeslabs, args, 3);
-*/
-
-
-
-/*
+    if (uk_freecount != uk.uk_free)
+      warnx("%d free items in keg %s, expecting %d", uk.uk_free, uk_name, uk_freecount);
+  
+//    printf("%s: %d, %d\n", uk_name, uk.uk_size, uk.uk_free);
     // zones
-    uintptr_t uzp;
-    for (uzp = LIST_FIRSTP(&kz.uk_zones); uzp != 0;
-         uzp = LIST_NEXTP(uz, uz_link)) {
+    struct uma_zone *uzp;
+    for (uzp = LIST_FIRST(&uk.uk_zones); uzp != 0;
+         uzp = LIST_NEXT(uz, uz_link)) {
 
       // get zone (without or with caches)
-      kread (kd, uzp, uz, 
-        (kz.uk_flags & UMA_ZFLAG_INTERNAL) ?
-          sizeof(struct uma_zone) : uz_len);
-    
-      // the zone's keg needs to point to our keg
-      assert (kzp == (uintptr_t)(uz->uz_klink.kl_keg));
-
-      char z_name[MEMTYPE_MAXNAME];
-      kread_string(kd, uz->uz_name, z_name, MEMTYPE_MAXNAME);
-
-      // if zone is the head of the list
-      // then the keg and zone names are the same
-      if (uzp == LIST_FIRSTP(&kz.uk_zones))
-        assert (kz.uk_name == uz->uz_name);
+      kread (kd, uzp, uz, uz_len);
+      si.usi_uz = uz;
       
-      scan_bucketlist(kd, LIST_FIRSTP(&uz->uz_buckets),
-                  uz->uz_size, update->buckets, args);
+      // the zone's keg needs to point to our keg
+      assert (ukp == uz->uz_klink.kl_keg);
 
-      // if zone has caches
-      if (!(kz.uk_flags & UMA_ZFLAG_INTERNAL)) {
-        int cpu;
-        for (cpu = 0; cpu <= mp_maxid; cpu++) {
-          // If CPU_ABSENT(cpu)
-          if ((all_cpus & (1 << cpu)) == 0)
-            continue;
-          
-          struct uma_cache * uc = &uz->uz_cpu[cpu];
-          struct uma_bucket ub;
-          scan_bucket(kd, (uintptr_t)uc->uc_allocbucket, &ub,
-                      uz->uz_size, update->allocbuckets, args);
-          scan_bucket(kd, (uintptr_t)uc->uc_freebucket, &ub,
-                      uz->uz_size, update->freebuckets, args);
-          
-        }
+      kread_string(kd, uz->uz_name, uz_name, MEMTYPE_MAXNAME);
+      si.usi_name = uz_name;
+
+      // if zone is not secondary or it is the head of the list 
+      // then the keg and zone names are the same
+      if (uzp == LIST_FIRST(&uk.uk_zones)) {
+        assert (uk.uk_name == uz->uz_name);
       }
 
+      // UMA secondary zones share a keg with the primary zone.
+      // To avoid double-reporting of free items, report only in the primary zone.
+      if (!(uk.uk_flags & UMA_ZONE_SECONDARY) || uzp == LIST_FIRST(&uk.uk_zones)) {
+        mt_free += uk.uk_free;
+      }
+
+      mt_free += scan_bucketlist(kd, LIST_FIRST(&uz->uz_buckets), &si, upd);
+      
+      // if zone has caches per cpu
+      if (!(uk.uk_flags & UMA_ZFLAG_INTERNAL)) {
+        struct uma_bucket *ub = malloc(sizeof(struct uma_bucket));
+        for (int cpu = 0; cpu <= mp_maxid; cpu++) {
+          if (!CPU_ISSET(cpu, &all_cpus))
+            continue;
+          
+          struct uma_cache *uc = &uz->uz_cpu[cpu];
+          uc;
+          mt_free += scan_bucket(kd, uc->uc_allocbucket, ub, &si, upd);
+          mt_free += scan_bucket(kd, uc->uc_freebucket, ub, &si, upd);
+        }
+        free(ub);
+      }
+
+//      printf("\t%s:\t%d\n", uk_name, mt_free);
     } // zones
-*/
   } // kegs
+  free(uz);
 }
