@@ -33,12 +33,30 @@
 #include <stdio.h>
 
 #include "umascan.h"
-#include "kvm_private.h"
 
-// FreeBSD 10
+// WARNING: Hack to access private field of KVM (FreeBSD 10)
+
 struct vmstate {
   int minidump;
   struct minidumphdr hdr;
+  // Other stuff
+};
+
+struct __kvm {
+  char * pad1;
+  char * pad2;
+  char pad3[_POSIX2_LINE_MAX];
+  int pad4;
+  int pad5;
+  int pad6;
+  int pad7;
+  void * pad8;
+  char * pad9;
+  int pad10;
+  char ** pad11;
+  int pad12;
+  char * pad13;
+  struct vmstate *vmst;
   // Other stuff
 };
 
