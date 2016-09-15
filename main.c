@@ -56,7 +56,7 @@ static void
 usage()
 {
   fprintf(stderr,
-          "usage: %s [-v | -d] [-n dumpnr | -c core]  (-q string | -s | -z) [-k kernel] [addrs]\n",
+          "usage: %s [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z prbs)\n",
           getprogname());
   exit(EX_USAGE);
 }
@@ -291,6 +291,7 @@ main(int argc, char *argv[])
     break;
   case (M_DTRACE):
     lst = from_dtrace();
+    print_plist(lst);
     break;
   case (M_NONE):
   default:

@@ -40,17 +40,21 @@ static int sigintr;
 static int 
 chewrec (const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
 {
+  uint64_t *base;
+  struct plist *lst;
+  uintptr_t addr;
+
   // second pass
   if (rec == NULL)
     return DTRACE_CONSUME_NEXT;
 
-  uint64_t* base = (uint64_t*)data->dtpda_data;
-  struct plist *lst = (struct plist *) arg;
+  base = (uint64_t*)data->dtpda_data;
+  lst = (struct plist *) arg;
 
   /* First rec points to printf action and the second to the
    * first argument of printf */
   rec++;
-  uintptr_t addr = *(base + rec->dtrd_offset);
+  addr = *(base + rec->dtrd_offset);
 
   /* If we are already know the pointer, just skip */
   if (in_plist(addr, lst))
@@ -86,7 +90,10 @@ intr (int signo)
 struct plist*
 from_dtrace ()
 {
-  int errno;
+  FILE *fd;
+  struct plist *lst;
+  struct sigaction act;
+  int errno, done;
 
   dtrace_hdl_t* dtp;
 
@@ -96,9 +103,8 @@ from_dtrace ()
 
   dtrace_setopt(dtp, "bufsize", "4m");
   dtrace_setopt(dtp, "aggsize", "4m");
-  printf("dtrace options set\n");
 
-  FILE *fd = fopen("ucred.d", "r");
+  fd = fopen("ucred.d", "r");
   if (fd == NULL)
     err(-1, "failed to open dtrace script..\n");
   dtrace_prog_t* prog = dtrace_program_fcompile(dtp, fd, 0, 0, NULL);
@@ -110,7 +116,6 @@ from_dtrace ()
   if (dtrace_program_exec(dtp, prog, &info) == -1)
     err(-1, "failed to enable dtrace probes\n");
 
-  struct sigaction act;
   sigemptyset(&act.sa_mask);
   act.sa_flags = 0;
   act.sa_handler = intr;
@@ -119,11 +124,11 @@ from_dtrace ()
 
   if (dtrace_go(dtp) != 0)
     err(-1, "could not start instrumentation\n");
-  printf("DTrace started... Press CTRL-C to stop.\n");
+  printf("dtrace started... Press CTRL-C to stop.\n");
 
-  struct plist *lst = create_plist();
+  lst = create_plist();
 
-  int done = 0;
+  done = 0;
   do {
     if (!sigintr && !done) {
       dtrace_sleep(dtp);

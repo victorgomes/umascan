@@ -329,18 +329,17 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
   ussize = ipers * isize;
   us_data = malloc(ussize);
 
-  /* the data is smaller or equal to a slab size (due to header) */
-  if (ussize > si->usi_uk->uk_slabsize) {
-    warnx("skipping keg %s: data size too big, slabsize: %d", si->usi_name, si->usi_uk->uk_slabsize);
-    return si->usi_uk->uk_free;
-  }
-
   while (usp != NULL) {
+    us_freecount = 0;
     
     kread(kd, usp, &us, sizeof(struct uma_slab));
     si->usi_us = &us;
 
     kread(kd, us.us_data, us_data, ussize);
+
+    if (ust == FREE_SLABS) {
+
+    }
 
     for (i = 0; i < ipers; i++) {
       // is it a free item?
@@ -367,8 +366,8 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
     }
 
     /* free slabs do not seem to be using us_freecount field */
-    if (ust != FREE_SLABS && us_freecount != us.us_freecount)
-      warnx("different freecount in slab in the keg %s", si->usi_name);
+    if (ust != FREE_SLABS)
+      assert (us_freecount == us.us_freecount);
 
     uk_freecount += us_freecount;
     usp = LIST_NEXT(&us, us_link);
@@ -461,7 +460,8 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
   si.usi_arg = arg;
 
   // Read symbols
-  init_ksym(kd);
+  if (!KSYM_INITIALISED)
+    init_ksym(kd);
   kread_symbol(kd, KSYM_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus));
   kread_symbol(kd, KSYM_MP_MAXID, &mp_maxid, sizeof(mp_maxid));
   kread_symbol(kd, KSYM_UMA_KEGS, &uma_kegs, sizeof(uma_kegs));
@@ -499,10 +499,8 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
     uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
     uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
 
-    if (uk_freecount != uk.uk_free)
-      warnx("%d free items in keg %s, expecting %d", uk.uk_free, uk_name, uk_freecount);
+    assert (uk_freecount == uk.uk_free);
   
-//    printf("%s: %d, %d\n", uk_name, uk.uk_size, uk.uk_free);
     // zones
     struct uma_zone *uzp;
     for (uzp = LIST_FIRST(&uk.uk_zones); uzp != 0;
@@ -547,7 +545,6 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
         free(ub);
       }
 
-//      printf("\t%s:\t%d\n", uk_name, mt_free);
     } // zones
   } // kegs
   free(uz);

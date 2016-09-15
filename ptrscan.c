@@ -97,10 +97,12 @@ insert_plist (uintptr_t addr, struct plist *head)
   SLIST_INSERT_HEAD(head, p, p_link);
 }
 
-static void
+void
 print_plist(struct plist *head)
 {
   struct p_info * p;
+  struct uz_info *uz;
+
   SLIST_FOREACH(p, head, p_link) {
     printf("0x%lx:\n", p->p_addr);
     printf("\tzone name: %s\n", p->p_zone ? p->p_zone : "<unknown>");
@@ -108,7 +110,6 @@ print_plist(struct plist *head)
     printf("\tref count: %ld\n", p->p_refc);
     printf("\ttotal count: %d\n", p->p_count);
 
-    struct uz_info *uz;
     SLIST_FOREACH(uz, &p->uz_link, uz_link) {
       printf("\t\t%s: %d\n", uz->uz_name, uz->uz_count);
     }
@@ -119,9 +120,10 @@ struct plist*
 from_file(FILE * addrfd)
 {
   uintptr_t addr;
+  struct p_info *p;
   struct plist * head = create_plist();
   while (fscanf(addrfd, "%lx", &addr) != EOF) {
-    struct p_info * p = malloc(sizeof(struct p_info));
+    p = malloc(sizeof(struct p_info));
     p->p_addr = addr;
     p->p_zone = NULL;
     p->p_count = 0;
@@ -137,6 +139,8 @@ update (usc_info_t si)
 {
   struct plist *ps = (struct plist *)si->usi_arg;
   struct p_info * p;
+  struct uz_info* uz = NULL;
+  int found = 0;
   
   SLIST_FOREACH(p, ps, p_link) {
     if (si->usi_iaddr <= p->p_addr && p->p_addr < si->usi_iaddr + si->usi_size) {
@@ -144,9 +148,8 @@ update (usc_info_t si)
     }
 
    if (si->usi_data == p->p_addr) {
-      struct uz_info* uz = NULL;
-      int found = 0;
-
+      uz = NULL;
+      found = 0;
       p->p_count++;
 
       if (!(SLIST_EMPTY(&p->uz_link))) {
@@ -172,13 +175,10 @@ update (usc_info_t si)
 void
 ptrscan(usc_hdl_t hdl, struct plist *lst)
 {
-  // fill pointer list
   umascan(hdl, &update, lst);
-
   struct p_info * p;
   SLIST_FOREACH(p, lst, p_link) {
     memread(hdl, (void*)p->p_addr, &p->p_refc, sizeof(int64_t));
   }
-
   print_plist(lst);
 }

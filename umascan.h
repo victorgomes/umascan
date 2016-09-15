@@ -67,6 +67,7 @@ struct plist* create_plist(void);
 void destroy_plist(struct plist *lst);
 int in_plist(uintptr_t addr, struct plist *lst);
 void insert_plist(uintptr_t addr, struct plist *lst);
+void print_plist(struct plist *lst);
 
 struct plist* from_file(FILE *fd);
 struct plist* from_dtrace(void);
