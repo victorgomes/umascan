@@ -3,9 +3,7 @@ Intrumentation tool for FreeBSD's Unified Memory Allocation (UMA).
 
 ## Usage
 
-```bash
-umascan [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z probs)
-```
+`umascan [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z probs)`
 
 ## Description
 
@@ -19,22 +17,23 @@ field.
 The options are as follows:
 
 `-c core`
-: Explicitly select the core dump file to be used.
+Explicitly select the core dump file to be used.
 
 `-n dumpnr`
-: Use the kernel core dump file numbered `dumpnr`.
+Use the kernel core dump file numbered `dumpnr`.
 
 `-k kernel`
-: Select the kernel symbol file to be used. If no kernel symbol file is given, the symbol file of the currently running kernel will be used.
+Select the kernel symbol file to be used. If no kernel symbol file is given, the
+symbol file of the currently running kernel will be used.
 
 `-s addr`
-: Scan pointers in file file `addrs`.
+Scan pointers in file file `addrs`.
 
 `-z probs`
-: Run dtrace with the probes selected and scan the pointers retrieved by dtrace.
+Run dtrace with the probes selected and scan the pointers retrieved by dtrace.
 
 `-v`
-: Increase verbosity.
+Increase verbosity.
 
 The `-c` and `-n` (`-s` and `-z`) options are mutually exclusive.  If no core dump file
 is specified through any options, `/dev/mem` will be opened to allow scanning the
@@ -43,7 +42,7 @@ currently running kernel.
 ## Example
 
 ```bash
-# ./umascan -c /var/crash/vmcore.0 -s ucred.list
+./umascan -c /var/crash/vmcore.0 -s ucred.list
 
 umascan: input file: ucred.list
 umascan: core file: /var/crash/vmcore.0
