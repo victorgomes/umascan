@@ -3,7 +3,9 @@ Intrumentation tool for FreeBSD's Unified Memory Allocation (UMA).
 
 ## Usage
 
-`umascan [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z probs)`
+```
+umascan [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z probs)
+```
 
 ## Description
 
