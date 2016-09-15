@@ -9,7 +9,7 @@ umascan [-v] [-n dumpnr | -c core] [-k kernel] (-s addr | -z probs)
 
 ## Description
 
-The umascan utility is a instrumentation tool based on kvm, which scans a list
+The umascan utility is an instrumentation tool based on kvm, which scans a list
 of pointers (from a file or from a list of dtrace probes) in the UMA's allocated
 memory. It can be used with the live kernel or with a core file.  It displays
 the zone name where the pointer is located, the total count of references (by
