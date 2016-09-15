@@ -45,14 +45,11 @@ struct usc_info {
   struct uma_zone* usi_uz;
   struct uma_slab* usi_us;
   char * usi_name;
-  enum usc_type usi_type;
-  // value of the current data being scanned
-  uint64_t usi_data;
-  // bounds of current item being scanned
-  uintptr_t usi_iaddr; // address of the beginning of the item 
-  uintptr_t usi_size;  // size of item
-  // private args to be passed when scanning
-  void * usi_arg;
+  enum usc_type usi_type; 
+  uint64_t usi_data;    // value of the current data being scanned
+  uintptr_t usi_iaddr;  // address of the beginning of the item 
+  uintptr_t usi_size;   // size of item
+  void * usi_arg;       // private args to be passed when scanning
 };
 typedef struct usc_info* usc_info_t;
 
@@ -64,9 +61,19 @@ void delete_usc_hdl (usc_hdl_t hdl);
 void memread (usc_hdl_t, const void *addr, void *buf, size_t size);
 void umascan(usc_hdl_t hdl, umascan_t usc, void *args);
 
+/* pointer list */
+struct plist;
+struct plist* create_plist(void);
+void destroy_plist(struct plist *lst);
+int in_plist(uintptr_t addr, struct plist *lst);
+void insert_plist(uintptr_t addr, struct plist *lst);
+
+struct plist* from_file(FILE *fd);
+struct plist* from_dtrace(void);
+
 /* consumers */
+void ptrscan (usc_hdl_t hdl, struct plist* lst);
 void kread_kthr (usc_hdl_t hdl);
-void scan_ptrs (usc_hdl_t hdl, FILE *fd);
 void print_kthr (usc_hdl_t hdl);
 void print_mhdr (usc_hdl_t hdl);
 

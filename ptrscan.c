@@ -59,29 +59,42 @@ struct p_info {
 
 SLIST_HEAD(plist, p_info);
 
-static void
-create_plist(FILE * addrfd, struct plist * head)
+struct plist*
+create_plist()
 {
-  uintptr_t addr;
-  SLIST_INIT(head);
-  while (fscanf(addrfd, "%lx", &addr) != EOF) {
-    struct p_info * p = malloc(sizeof(struct p_info));
-    p->p_addr = addr;
-    p->p_zone = NULL;
-    p->p_count = 0;
-    p->p_refc = -1;
-    SLIST_INIT(&p->uz_link);
-    SLIST_INSERT_HEAD(head, p, p_link);
-  }
+  struct plist* lst = malloc(sizeof(struct plist));
+  if (lst)
+    SLIST_INIT(lst);
+  return lst;
 }
 
-static void
-free_plist(struct plist * head)
+void
+destroy_plist(struct plist* head)
 {
   struct p_info * p;
   SLIST_FOREACH(p, head, p_link) {
     free(p);  
   }
+  free(head);
+}
+
+int
+in_plist (uintptr_t addr, struct plist *head)
+{
+  struct p_info *p;
+  SLIST_FOREACH(p, head, p_link) {
+    if (p->p_addr == addr)
+      return 1;
+  }
+  return 0;
+}
+
+void
+insert_plist (uintptr_t addr, struct plist *head)
+{
+  struct p_info *p = malloc(sizeof(struct p_info));
+  p->p_addr = addr;
+  SLIST_INSERT_HEAD(head, p, p_link);
 }
 
 static void
@@ -102,7 +115,25 @@ print_plist(struct plist *head)
   }
 }
 
-static void update (usc_info_t si)
+struct plist*
+from_file(FILE * addrfd)
+{
+  uintptr_t addr;
+  struct plist * head = create_plist();
+  while (fscanf(addrfd, "%lx", &addr) != EOF) {
+    struct p_info * p = malloc(sizeof(struct p_info));
+    p->p_addr = addr;
+    p->p_zone = NULL;
+    p->p_count = 0;
+    p->p_refc = -1;
+    SLIST_INIT(&p->uz_link);
+    SLIST_INSERT_HEAD(head, p, p_link);
+  }
+  return head;
+}
+
+static void
+update (usc_info_t si)
 {
   struct plist *ps = (struct plist *)si->usi_arg;
   struct p_info * p;
@@ -139,21 +170,15 @@ static void update (usc_info_t si)
 }
 
 void
-scan_ptrs(usc_hdl_t hdl, FILE *fd)
+ptrscan(usc_hdl_t hdl, struct plist *lst)
 {
-  struct plist ps;
-  //enum mode_t mode = hdl->usc_mode;
-
   // fill pointer list
-  create_plist(fd, &ps);
-  umascan(hdl, &update, &ps);
+  umascan(hdl, &update, lst);
 
   struct p_info * p;
-  SLIST_FOREACH(p, &ps, p_link) {
+  SLIST_FOREACH(p, lst, p_link) {
     memread(hdl, (void*)p->p_addr, &p->p_refc, sizeof(int64_t));
   }
 
-  print_plist(&ps);
-  free_plist(&ps);
+  print_plist(lst);
 }
-

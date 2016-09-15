@@ -48,14 +48,15 @@ typedef enum {
   M_QUERY_KTHR,
   M_QUERY_MHDR,
   M_SCAN_SLABS,
-  M_SCAN_BUCKETS
+  M_SCAN_BUCKETS,
+  M_DTRACE
 } scn_mode_t ;
 
 static void
 usage()
 {
   fprintf(stderr,
-          "usage: %s [-v] [-n dumpnr | -c core]  (-q string | -s) [-k kernel] [addrs]\n",
+          "usage: %s [-v | -d] [-n dumpnr | -c core]  (-q string | -s | -z) [-k kernel] [addrs]\n",
           getprogname());
   exit(EX_USAGE);
 }
@@ -175,11 +176,12 @@ main(int argc, char *argv[])
   scn_mode_t mode;
   const char *vmcore = NULL, *kernel = NULL;
   char *s;
-  int ch, verbose, dumpnr = -1;
+  int ch, verbose = 0, dumpnr = -1;
+  struct plist* lst;
 
   debug = 0;
 
-  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:sb")) != -1) {
+  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:szb")) != -1) {
     switch (ch) {
     case 'v':
       verbose = 1;
@@ -210,6 +212,9 @@ main(int argc, char *argv[])
       break;
     case 's':
       mode = M_SCAN_SLABS;
+      break;
+    case 'z':
+      mode = M_DTRACE;
       break;
     case 'd':
       debug = strtol(optarg, &s, 0);
@@ -267,6 +272,7 @@ main(int argc, char *argv[])
     warnx("kernel image: %s", kernel);
   }
  
+  lst = NULL;
   switch(mode) {
   case M_QUERY_KTHR:
   {
@@ -281,12 +287,20 @@ main(int argc, char *argv[])
   }
   case (M_SCAN_SLABS):
   case (M_SCAN_BUCKETS):
-    scan_ptrs(hdl, fd);
+    lst = from_file(fd);
+    break;
+  case (M_DTRACE):
+    lst = from_dtrace();
     break;
   case (M_NONE):
   default:
     usage();
   }
+
+  if (lst) {
+    ptrscan (hdl, lst);
+    destroy_plist(lst);
+  }  
 
   delete_usc_hdl(hdl);
 

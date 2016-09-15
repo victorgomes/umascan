@@ -155,7 +155,7 @@ static void
 init_ksym(kvm_t *kd)
 {
   if (kvm_nlist(kd, ksymbols) != 0)
-    err(EX_NOINPUT, "kvm_nlist");
+    err(EX_NOINPUT, "kvm_nlist: %s", kvm_geterr(kd));
 
   if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
       ksymbols[KSYM_UMA_KEGS].n_value == 0)
@@ -381,8 +381,10 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
 static int
 scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
 {
-  size_t ub_len;
-  //size_t bucketsize = si->usi_uz->uz_size;
+  size_t ub_size, isize;
+  void ** ub_bucket;
+//  uintptr_t *iptr, *iend;
+  uint8_t *ub_data;
 
   if (ubp == 0)
     return 0 ;
@@ -390,32 +392,39 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t
   // get a bucket (without data table)
   kread (kd, ubp, ub, sizeof(struct uma_bucket));
 
+  if (!upd)
+    return ub->ub_cnt;
+
   // if no data, leave
   if (ub->ub_cnt == 0)
       return 0;
 
-  // get new bucket (with data table)
-  void ** ub_bucket;
-  ub_len = sizeof(ub->ub_entries*sizeof(void*));
-  ub_bucket = malloc(ub_len);
+  // get data table
+  ub_size = sizeof(ub->ub_entries*sizeof(void*));
+  ub_bucket = malloc(ub_size);
+  kread (kd, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_size);
 
-  kread (kd, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_len);
+  // allocate data for an item
+  isize = si->usi_uz->uz_size;
+  ub_data = malloc(isize);
 
-/*
   // read the data of each bucket
   for (int i = 0; i < ub->ub_entries - ub->ub_cnt; i++) {
-    int ub_num = bucketsize/sizeof(uintptr_t);
-    uintptr_t ub_data[ub_num];
-    kread(kd, (uintptr_t)ub_bucket[i], &ub_data, bucketsize);
+//    kread(kd, ub_bucket[i], ub_data, isize);
+/*
 
-    int j;
-    for (j = 0; j < ub_num; j++) {
-      si->usi_data = ub_data[j];
-      if (upd)
-        (*upd)(si);
+    iptr = (uintptr_t*)ub_data;
+    iend = iptr + isize;
+
+    while (iptr < iend) {
+      si->usi_data = *iptr;
+      (*upd)(si);
+      iptr += sizeof(uintptr_t);
     }
-  }
 */
+  }
+
+  free (ub_data);
   free (ub_bucket);
   return ub->ub_cnt;
 }
