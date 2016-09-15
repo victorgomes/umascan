@@ -172,7 +172,7 @@ kernel_from_vmcore(const char * vmcore)
 int
 main(int argc, char *argv[])
 {
-  FILE *fd;
+  FILE *fd = NULL;
   scn_mode_t mode;
   const char *vmcore = NULL, *kernel = NULL;
   char *s;

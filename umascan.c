@@ -162,15 +162,6 @@ init_ksym(kvm_t *kd)
     errx(EX_DATAERR, "kvm_nlist return");
 }
 
-static int
-init_masterkeg(kvm_t *kd, struct uma_keg* uk)
-{
-  if (!KSYM_INITIALISED)
-    init_ksym(kd);
-  kread_symbol(kd, KSYM_UMA_KEGS, uk, sizeof(struct uma_keg));
-  return 0;
-}
-
 usc_hdl_t
 create_usc_hdl (const char *kernel, const char *core)
 {
@@ -178,15 +169,16 @@ create_usc_hdl (const char *kernel, const char *core)
   usc_hdl_t hdl;
   int cpusetsize;
 
-  kd = kvm_open(kernel, core, NULL, 0, "kvm");
+  kd = kvm_openfiles(kernel, core, NULL, 0, "kvm");
   if (kd == NULL)
     errx(EX_NOINPUT, "kvm_open: %s", kvm_geterr(kd));
 
-  if (!KSYM_INITIALISED)
-    init_ksym(kd);
-
   hdl = malloc(sizeof(struct usc_hdl));
   hdl->usc_kd = kd;
+
+
+  if (!KSYM_INITIALISED)
+    init_ksym(kd);
 
   kread_symbol(kd, KSYM_ALLPROC, &hdl->usc_allproc, sizeof(hdl->usc_allproc));
   if (debug > 0)
