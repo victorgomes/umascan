@@ -134,13 +134,26 @@ parse(yaml_parser_t *p, yaml_event_t *e, const char *errmsg)
   }
 }
 
+static void
+add_ptr_to_plist (struct plist *head, uintptr_t addr, int rc_offset, const char *rc_type)
+{
+  struct p_info *p = malloc(sizeof(struct p_info));
+  p->p_addr = addr;
+  p->p_zone = NULL;
+  p->p_count = 0;
+  p->p_refc = -1;
+  p->p_rc_offset = rc_offset;
+  p->p_rc_type = rc_type;
+  SLIST_INIT(&p->uz_link);
+  SLIST_INSERT_HEAD(head, p, p_link);
+}
+
 struct plist*
 from_file(FILE * fd)
 {
   yaml_parser_t parser;
   yaml_event_t e;
-  struct p_info *p;
-  struct plist * head;
+  struct plist * plist;
   const char* tok, *struct_name = "", *rc_type = "";
   int rc_offset = -1;
 
@@ -161,16 +174,22 @@ from_file(FILE * fd)
   
   yaml_parser_set_input_file(&parser, fd);
 
-  head = create_plist();
+  plist = create_plist();
   do {
     parse(&parser, &e, NULL);
 
     switch (e.type) {
     case YAML_SEQUENCE_END_EVENT:
-      if (flag == PARSE_VALUES)
+      switch(flag) {
+      case PARSE_TOP:
+        break;
+      case PARSE_VALUES:
         flag = PARSE_POINTERS;
-      else
+        break;
+      default:
         errx(-1, "wrong format -- sequence");
+        break;
+      }
       break;
     case YAML_MAPPING_END_EVENT:
       switch(flag) {
@@ -196,7 +215,7 @@ from_file(FILE * fd)
         if (strcmp(tok, "pointers") == 0)
           flag = PARSE_POINTERS;
         else
-          errx(-1, "wrong format, expecting field `pointers`");
+          add_ptr_to_plist (plist, strtoull(tok, NULL, 0), rc_offset, rc_type);
         break;
       case PARSE_POINTERS:
         if (strcmp(tok, "name") == 0)
@@ -227,15 +246,7 @@ from_file(FILE * fd)
         flag = PARSE_RC;
         break;
       case PARSE_VALUES:
-        p = malloc(sizeof(struct p_info));
-        p->p_addr = strtoull(tok, NULL, 0);
-        p->p_zone = NULL;
-        p->p_count = 0;
-        p->p_refc = -1;
-        p->p_rc_offset = rc_offset;
-        p->p_rc_type = rc_type;
-        SLIST_INIT(&p->uz_link);
-        SLIST_INSERT_HEAD(head, p, p_link);
+        add_ptr_to_plist (plist, strtoull(tok, NULL, 0), rc_offset, rc_type);
         break;
       }
       break;
@@ -252,7 +263,7 @@ from_file(FILE * fd)
   yaml_parser_delete(&parser);
 
   fclose(fd);
-  return head;
+  return plist;
 }
 
 static void
