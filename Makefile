@@ -6,14 +6,12 @@ WARNS?=	3
 IGNORE_PRAGMA=
 WITH_DTRACE=
 
-FREEBSD_SRC=/usr/src
-
-CFLAGS=-g
+CFLAGS=-g -I/usr/local/include
 SRCS=umascan.c mhdr.c ptrscan.c main.c
-DlADD=	${LIBKVM}
-LDADD=	-lkvm 
+LDADD=	-lkvm -lyaml -L/usr/local/lib
 
 .if defined(WITH_DTRACE)
+FREEBSD_SRC=/usr/src
 SRCS+=dtscan.c
 CFLAGS+=-I ${FREEBSD_SRC}/cddl/compat/opensolaris/include \
 	-I ${FREEBSD_SRC}/cddl/contrib/opensolaris/lib/libdtrace/common/ \

@@ -40,6 +40,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <err.h>
+#include <yaml.h>
+
 #include "umascan.h"
 
 struct uz_info {
@@ -53,6 +56,9 @@ struct p_info {
   int64_t p_refc;
   int p_count;
   const char *p_zone;
+  const char *p_struct_name;
+  int p_rc_offset;
+  const char *p_rc_type;
   SLIST_HEAD(,uz_info) uz_link;
   SLIST_ENTRY(p_info) p_link;
 };
@@ -107,7 +113,8 @@ print_plist(struct plist *head)
     printf("0x%lx:\n", p->p_addr);
     printf("\tzone name: %s\n", p->p_zone ? p->p_zone : "<unknown>");
     
-    printf("\tref count: %ld\n", p->p_refc);
+    if (p->p_rc_offset != -1)
+      printf("\tref count: %ld\n", p->p_refc);
     printf("\ttotal count: %d\n", p->p_count);
 
     SLIST_FOREACH(uz, &p->uz_link, uz_link) {
@@ -116,21 +123,135 @@ print_plist(struct plist *head)
   }
 }
 
-struct plist*
-from_file(FILE * addrfd)
+static void
+parse(yaml_parser_t *p, yaml_event_t *e, const char *errmsg)
 {
-  uintptr_t addr;
-  struct p_info *p;
-  struct plist * head = create_plist();
-  while (fscanf(addrfd, "%lx", &addr) != EOF) {
-    p = malloc(sizeof(struct p_info));
-    p->p_addr = addr;
-    p->p_zone = NULL;
-    p->p_count = 0;
-    p->p_refc = -1;
-    SLIST_INIT(&p->uz_link);
-    SLIST_INSERT_HEAD(head, p, p_link);
+  if (!yaml_parser_parse(p, e)) {
+    if (!errmsg)
+      errx(-1, "parse error: %s\n", errmsg);
+    else
+      errx(-1, "parse error: %d\n", p->error);
   }
+}
+
+struct plist*
+from_file(FILE * fd)
+{
+  yaml_parser_t parser;
+  yaml_event_t e;
+  struct p_info *p;
+  struct plist * head;
+  const char* tok, *struct_name = "", *rc_type = "";
+  int rc_offset = -1;
+
+  enum {
+    PARSE_TOP,
+    PARSE_POINTERS,
+    PARSE_NAME,
+    PARSE_RC,
+    PARSE_RC_OFFSET,
+    PARSE_RC_TYPE,
+    PARSE_VALUES
+  } flag = PARSE_TOP;
+
+  yaml_parser_initialize(&parser);
+
+  if (!yaml_parser_initialize(&parser))
+    errx(-1, "failed to initialize yaml parser\n");
+  
+  yaml_parser_set_input_file(&parser, fd);
+
+  head = create_plist();
+  do {
+    parse(&parser, &e, NULL);
+
+    switch (e.type) {
+    case YAML_SEQUENCE_END_EVENT:
+      if (flag == PARSE_VALUES)
+        flag = PARSE_POINTERS;
+      else
+        errx(-1, "wrong format -- sequence");
+      break;
+    case YAML_MAPPING_END_EVENT:
+      switch(flag) {
+      case PARSE_TOP:
+        break;
+      case PARSE_POINTERS:
+        struct_name = NULL;
+        rc_offset = -1;
+        rc_type = "";
+        flag = PARSE_TOP;
+        break;
+      case PARSE_RC:
+        flag = PARSE_POINTERS;
+        break;
+      default:
+        errx(-1, "wrong format - mapping");
+      }
+      break;
+    case YAML_SCALAR_EVENT: 
+      tok = e.data.scalar.value;
+      switch(flag) {
+      case PARSE_TOP:
+        if (strcmp(tok, "pointers") == 0)
+          flag = PARSE_POINTERS;
+        else
+          errx(-1, "wrong format, expecting field `pointers`");
+        break;
+      case PARSE_POINTERS:
+        if (strcmp(tok, "name") == 0)
+          flag = PARSE_NAME;
+        else if (strcmp(tok, "ref_field") == 0)
+          flag = PARSE_RC;
+        else if (strcmp(tok, "values") == 0)
+          flag = PARSE_VALUES;
+        else
+          errx(-1, "wrong format, expecting `name`, `ref_field` and `values`");
+        break;
+      case PARSE_NAME:
+        struct_name = strdup(tok);
+        flag = PARSE_POINTERS;
+        break;
+      case PARSE_RC:
+        if (strcmp(tok, "offset") == 0)
+          flag = PARSE_RC_OFFSET;
+        else if (strcmp(tok, "type") == 0)
+          flag = PARSE_RC_TYPE;
+        break;
+      case PARSE_RC_OFFSET:
+        rc_offset = atoi(tok);
+        flag = PARSE_RC;
+        break;
+      case PARSE_RC_TYPE:
+        rc_type = strdup(tok);
+        flag = PARSE_RC;
+        break;
+      case PARSE_VALUES:
+        p = malloc(sizeof(struct p_info));
+        p->p_addr = strtoull(tok, NULL, 0);
+        p->p_zone = NULL;
+        p->p_count = 0;
+        p->p_refc = -1;
+        p->p_rc_offset = rc_offset;
+        p->p_rc_type = rc_type;
+        SLIST_INIT(&p->uz_link);
+        SLIST_INSERT_HEAD(head, p, p_link);
+        break;
+      }
+      break;
+     default:
+        break;
+    }
+
+    if (e.type != YAML_STREAM_END_EVENT)
+      yaml_event_delete(&e);
+
+  } while (e.type != YAML_STREAM_END_EVENT);
+  yaml_event_delete(&e);
+
+  yaml_parser_delete(&parser);
+
+  fclose(fd);
   return head;
 }
 
@@ -178,7 +299,10 @@ ptrscan(usc_hdl_t hdl, struct plist *lst)
   umascan(hdl, &update, lst);
   struct p_info * p;
   SLIST_FOREACH(p, lst, p_link) {
-    memread(hdl, (void*)p->p_addr, &p->p_refc, sizeof(int64_t));
+    /* only update refc if offset exists and the pointer was found by umascan,
+     * otherwise we risk of deferencing a non existing pointer */
+    if (p->p_rc_offset != -1 && p->p_zone)
+      memread(hdl, (void*)(p->p_addr + p->p_rc_offset), &p->p_refc, sizeof(int64_t));
   }
   print_plist(lst);
 }
