@@ -51,12 +51,16 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <fcntl.h>
+#include <libelf/gelf.h>
+
 #include "umascan.h"
 
 extern int debug;
 
 struct usc_hdl {
   kvm_t *usc_kd;
+  const char *usc_symfile;
   struct uma_keg *usc_masterkeg;
   int usc_maxcpus;
   int usc_maxid;
@@ -175,7 +179,8 @@ create_usc_hdl (const char *kernel, const char *core)
 
   hdl = malloc(sizeof(struct usc_hdl));
   hdl->usc_kd = kd;
-
+  
+  hdl->usc_symfile = kernel;
 
   if (!KSYM_INITIALISED)
     init_ksym(kd);
@@ -273,6 +278,66 @@ kread_kthr(usc_hdl_t hdl)
     p_addr = LIST_NEXT(&p, p_list);
   }
 
+}
+
+static void
+elf_header(kvm_t *kd, const char *symfile, usc_info_t si, umascan_t upd)
+{
+  int fd;
+  Elf *e;
+  char *name;
+  Elf_Scn *scn;
+  GElf_Shdr shdr;
+  size_t shstrndx;
+  unsigned long i;
+  uint8_t* data;
+
+  if (elf_version(EV_CURRENT) == EV_NONE)
+    errx(EX_SOFTWARE, "ELF library initialization failed: %s", elf_errmsg(-1));
+
+  if ((fd = open(symfile, O_RDONLY, 0)) < 0)
+    err(EX_NOINPUT, "open \"%s\" failed", symfile);
+
+  if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL)
+    errx(EX_SOFTWARE, "elf begin() failed: %s", elf_errmsg(-1));
+
+  if (elf_kind(e) != ELF_K_ELF)
+    errx(EX_DATAERR, "\"%s\" is not an ELF object", symfile);
+
+  if (elf_getshdrstrndx(e, &shstrndx) != 0)
+    errx(EX_DATAERR, "elf_getshdrstrndx() failed: %s", elf_errmsg(-1));
+
+  scn = NULL;
+
+  while ((scn = elf_nextscn(e, scn)) != NULL) {
+    if (gelf_getshdr(scn, &shdr) != &shdr)
+      errx(EX_SOFTWARE, "getshdr() failed: %s", elf_errmsg(-1));
+
+    if (shdr.sh_flags & ~(SHF_ALLOC | SHF_WRITE) || shdr.sh_flags == 0)
+      continue;
+
+    if ((name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL)
+      errx(EX_SOFTWARE, "elf_strptr() failed: %s", elf_errmsg(-1));
+
+    if (!INKERNEL(shdr.sh_addr)) {
+      warnx("section header \"%s\" not in kernel space", name);
+      continue;
+    }
+    
+    data = malloc(shdr.sh_size);
+    kread(kd, (void*)shdr.sh_addr, data, shdr.sh_size);
+    
+    for(i = 0; i < shdr.sh_size; i+=8) {
+      si->usi_name = name;
+      si->usi_data = *(uintptr_t*)(data + i);
+      (*upd)(si);
+    }
+
+    free(data);
+  }
+
+  elf_end(e);
+  close(fd);
 }
 
 static void
@@ -639,4 +704,5 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
     } // zones
   } // kegs
   free(uz);
+  elf_header(kd, hdl->usc_symfile, &si, upd);
 }

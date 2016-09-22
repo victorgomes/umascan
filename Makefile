@@ -6,9 +6,9 @@ WARNS?=	3
 IGNORE_PRAGMA=
 WITH_DTRACE=
 
-CFLAGS=-g -I/usr/local/include
+CFLAGS=-g -I/usr/local/include 
 SRCS=umascan.c mhdr.c ptrscan.c main.c
-LDADD=	-lkvm -lyaml -L/usr/local/lib
+LDADD=	-lelf -lkvm -lyaml -L/usr/local/lib
 
 .if defined(WITH_DTRACE)
 FREEBSD_SRC=/usr/src
