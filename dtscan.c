@@ -88,9 +88,8 @@ intr (int signo)
 }
 
 struct plist*
-from_dtrace ()
+from_dtrace (FILE *fd)
 {
-  FILE *fd;
   struct plist *lst;
   struct sigaction act;
   int errno, done;
@@ -104,7 +103,6 @@ from_dtrace ()
   dtrace_setopt(dtp, "bufsize", "4m");
   dtrace_setopt(dtp, "aggsize", "4m");
 
-  fd = fopen("ucred.d", "r");
   if (fd == NULL)
     err(-1, "failed to open dtrace script..\n");
   dtrace_prog_t* prog = dtrace_program_fcompile(dtp, fd, 0, 0, NULL);

@@ -70,7 +70,7 @@ void insert_plist(uintptr_t addr, struct plist *lst);
 void print_plist(struct plist *lst);
 
 struct plist* from_file(FILE *fd);
-struct plist* from_dtrace(void);
+struct plist* from_dtrace(FILE *fd);
 
 /* consumers */
 void ptrscan (usc_hdl_t hdl, struct plist* lst);

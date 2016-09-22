@@ -290,7 +290,7 @@ main(int argc, char *argv[])
     lst = from_file(fd);
     break;
   case (M_DTRACE):
-    lst = from_dtrace();
+    lst = from_dtrace(fd);
     print_plist(lst);
     break;
   case (M_NONE):

@@ -26,10 +26,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/user.h>
 #include <sys/stat.h>
 #include <sys/cpuset.h>
 #include <sys/proc.h>
-
 #include <machine/pcb.h>
 
 #define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
@@ -106,9 +106,9 @@ kread(kvm_t *kd, const void* addr, void *buf, size_t size)
   ssize_t ret;
   ret = kvm_read(kd, (uintptr_t) addr, buf, size);
   if (ret < 0)
-    err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
-    err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
 }
 
 static void
@@ -120,9 +120,9 @@ kread_symbol(kvm_t *kd, int index, void *buf, size_t size)
     err(-1, "symbol address null");
   ret = kvm_read(kd, addr, buf, size);
   if (ret < 0)
-    err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
-    err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
 }
 
 static void
@@ -135,9 +135,9 @@ kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
     ret = kvm_read(kd, (uintptr_t)addr + i,
         &(buf[i]), sizeof(char));
     if (ret < 0)
-      err(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
+      errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
     if ((size_t)ret != sizeof(char))
-      err(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+      errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
     if (buf[i] == '\0')
       return;
   }
@@ -155,7 +155,7 @@ static void
 init_ksym(kvm_t *kd)
 {
   if (kvm_nlist(kd, ksymbols) != 0)
-    err(EX_NOINPUT, "kvm_nlist: %s", kvm_geterr(kd));
+    errx(EX_NOINPUT, "kvm_nlist: %s", kvm_geterr(kd));
 
   if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
       ksymbols[KSYM_UMA_KEGS].n_value == 0)
@@ -224,6 +224,12 @@ struct kthr {
   SLIST_ENTRY(kthr) k_link;
 };
 
+struct amd64_frame {
+  struct amd64_frame *f_frame;
+  long f_retaddr;
+  long f_arg0;
+};
+
 void
 kread_kthr(usc_hdl_t hdl)
 {
@@ -231,7 +237,6 @@ kread_kthr(usc_hdl_t hdl)
   struct thread *td_addr, td;
   struct kthr *kt;
   kvm_t *kd = hdl->usc_kd;
-  
   p_addr = hdl->usc_allproc;
   
   SLIST_INIT(&hdl->usc_kthrs);
@@ -242,6 +247,8 @@ kread_kthr(usc_hdl_t hdl)
 
     while (td_addr != 0) {
       kread(kd, td_addr, &td, sizeof(td));
+
+      //db_trace_thread(td.td_tid, -1);
 
       kt = malloc(sizeof(struct kthr));
 
@@ -265,6 +272,95 @@ kread_kthr(usc_hdl_t hdl)
     }
     p_addr = LIST_NEXT(&p, p_list);
   }
+
+}
+
+static void
+scan_kstacks(kvm_t *kd, struct proc* allproc, usc_info_t si, umascan_t upd)
+{
+  struct proc *p_addr, p;
+  struct thread *td_addr, td;
+  struct pcb pcb;
+  struct amd64_frame *f_addr, frame;
+  uintptr_t f_args_addr, *f_args, *f_arg;
+  size_t f_args_size;
+  char reg_name[15];
+  
+  p_addr = allproc;
+  while (p_addr != 0) {
+    kread(kd, p_addr, &p, sizeof(p));
+    td_addr = TAILQ_FIRST(&p.p_threads);
+
+    while (td_addr != 0) {
+      kread(kd, td_addr, &td, sizeof(td));
+      kread(kd, td.td_pcb, &pcb, sizeof(struct pcb));
+
+      /* scan registers */
+#define scan_reg(r) \
+  strcpy(reg_name, "Register "); \
+  si->usi_name = strcat(reg_name, #r); \
+  si->usi_data = pcb.pcb_##r; \
+  (*upd)(si);
+        scan_reg(r15);
+        scan_reg(r14);
+        scan_reg(r13);
+        scan_reg(r12);
+        scan_reg(rbx);
+        scan_reg(rip);
+        scan_reg(cr0);
+        scan_reg(cr2);
+        scan_reg(cr3);
+        scan_reg(cr4);
+        scan_reg(dr0);
+        scan_reg(dr1);
+        scan_reg(dr2);
+        scan_reg(dr3);
+        scan_reg(dr6);
+        scan_reg(dr7);
+
+      // scan frames
+      si->usi_name = "Stack frame arguments";
+      f_addr = (struct amd64_frame*) pcb.pcb_rbp;
+      while(1) {
+        if (!INKERNEL((unsigned long)f_addr)) {
+          warnx ("frame addr: 0x%lx not in kernel.", (uintptr_t)f_addr);
+          break;
+        }
+
+        kread(kd, f_addr, &frame, sizeof(struct amd64_frame));
+        if (!INKERNEL((uintptr_t)frame.f_retaddr)) {
+          warnx( "return address of frame is not in kernel.");
+          break;
+        }
+
+        // loop exit condition
+        if (frame.f_frame <= f_addr ||
+            (vm_offset_t)frame.f_frame >= td.td_kstack + td.td_kstack_pages * PAGE_SIZE) {
+          break;
+        }
+
+        f_args_addr = (uintptr_t) f_addr + 16;
+        f_args_size = ((uintptr_t)frame.f_frame) - f_args_addr;
+        f_args = malloc(f_args_size);
+        kread(kd, (void*)f_args_addr, f_args, f_args_size);
+
+        // scan arguments inside frames
+        f_arg = (uintptr_t *)f_args;
+        while (f_args_addr < (uintptr_t)frame.f_frame) {
+          si->usi_data = *f_arg;
+          (*upd)(si);
+          f_arg++;
+          f_args_addr+=8;
+        }
+        free(f_args);
+
+        f_addr = frame.f_frame;
+      } 
+      td_addr = TAILQ_NEXT(&td, td_plist);
+    }
+    p_addr = LIST_NEXT(&p, p_list);
+  }
+
 
 }
 
@@ -464,6 +560,9 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
 
   CPU_ZERO(&all_cpus);  
   kread_symbol(kd, KSYM_ALLCPUS, &all_cpus, cpusetsize);
+
+  /* scan kernel stacks */
+  scan_kstacks(kd, hdl->usc_allproc, &si, upd);
 
   /**
    * uma_zone ends in an array of mp_maxid cache entries.
