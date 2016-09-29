@@ -27,6 +27,9 @@
 
 #include <sys/param.h>
 #include <sys/user.h>
+#include <sys/cpuset.h>
+#include <vm/uma.h>
+#include <vm/uma_int.h>
 
 #include <err.h>
 #include <kvm.h>
@@ -61,10 +64,13 @@ struct usc_hdl {
   Elf *usc_e;
   int usc_symfd;
   struct nlist usc_ksym[KSYM_SIZE];
+  int usc_flags;
+  uma_keg_t usc_uk;
+  uma_zone_t usc_uz;
 };
 
 usc_hdl_t
-usc_create (const char *kernel, const char *core)
+usc_create (const char *kernel, const char *core, int flags)
 {
   int fd;
   kvm_t* kd;
@@ -99,6 +105,9 @@ usc_create (const char *kernel, const char *core)
   hdl->usc_kd = kd;
   hdl->usc_e = e;
   hdl->usc_symfd = fd;
+  hdl->usc_uk = NULL;
+  hdl->usc_uz = NULL;
+  hdl->usc_flags = flags ? flags : USCAN_DEFAULT;
 
   hdl->usc_ksym[KSYM_UMA_KEGS].n_value = 0;
   hdl->usc_ksym[KSYM_UMA_KEGS].n_name = "_uma_kegs";
@@ -206,7 +215,7 @@ scan_globals (usc_hdl_t hdl, usc_info_t si, umascan_t upd)
     data = malloc(shdr.sh_size);
     kread(hdl, (void*)shdr.sh_addr, data, shdr.sh_size);
     
-    for(i = 0; i < shdr.sh_size; i+=8) {
+    for(i = 0; i < shdr.sh_size; i+= sizeof(uintptr_t)) {
       si->usi_name = name;
       si->usi_data = *(uintptr_t*)(data + i);
       (*upd)(si);
@@ -220,14 +229,14 @@ static int
 scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc_slabinkeg_t usk)
 {
   struct uma_slab us;
-  size_t isize, irsize, ussize;
   int i, ipers, uk_freecount = 0, us_freecount = 0;
+  size_t j, isize, irsize, ussize;
   uintptr_t *iptr, *iend;
-  uint8_t * us_data;
+  uint8_t *us_data, *us_item;
   
-  ipers = si->usi_uk->uk_ipers;
-  isize = si->usi_uk->uk_size;
-  irsize = si->usi_uk->uk_rsize;
+  ipers = hdl->usc_uk->uk_ipers;
+  isize = hdl->usc_uk->uk_size;
+  irsize = hdl->usc_uk->uk_rsize;
 
   /* array of items in the slabs */
   ussize = ipers * isize;
@@ -237,13 +246,7 @@ scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc
     us_freecount = 0;
     
     kread(hdl, usp, &us, sizeof(struct uma_slab));
-    si->usi_us = &us;
-
     kread(hdl, us.us_data, us_data, ussize);
-
-    if (usk == FREE_SLABS) {
-
-    }
 
     for (i = 0; i < ipers; i++) {
       // is it a free item?
@@ -253,19 +256,17 @@ scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc
       }
 
       si->usi_iaddr = (uintptr_t) us.us_data + i*isize;
-      iptr = (uintptr_t*) (us_data + i*isize);
-      iend = iptr + irsize;
+      us_item = us_data + i*isize;
 
       /* let's be sure to not go beyound the size of the array */
-      assert (iptr < (uintptr_t*) (us_data + ussize));
+      assert (us_item < us_data + ussize);
       
       if (!upd)
         continue;
-      
-      while (iptr < iend) {
-        si->usi_data = *iptr;
+
+      for (j = 0; j < irsize; j += sizeof(uintptr_t)) {
+        si->usi_data = *(uintptr_t*)(us_item + j);
         (*upd)(si);
-        iptr += sizeof(uintptr_t);
       }
     }
 
@@ -284,9 +285,9 @@ scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc
 static int
 scan_bucket(usc_hdl_t hdl, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
 {
-  size_t ub_size, isize;
+  int i;
+  size_t j, ub_size, isize;
   void ** ub_bucket;
-//  uintptr_t *iptr, *iend;
   uint8_t *ub_data;
 
   if (ubp == 0)
@@ -303,28 +304,21 @@ scan_bucket(usc_hdl_t hdl, struct uma_bucket *ubp, struct uma_bucket *ub, usc_in
       return 0;
 
   // get data table
-  ub_size = sizeof(ub->ub_entries*sizeof(void*));
+  ub_size = ub->ub_entries*sizeof(void*);
   ub_bucket = malloc(ub_size);
   kread(hdl, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_size);
 
   // allocate data for an item
-  isize = si->usi_uz->uz_size;
+  isize = hdl->usc_uz->uz_size;
   ub_data = malloc(isize);
 
   // read the data of each bucket
-  for (int i = 0; i < ub->ub_entries - ub->ub_cnt; i++) {
-//    kread(kd, ub_bucket[i], ub_data, isize);
-/*
-
-    iptr = (uintptr_t*)ub_data;
-    iend = iptr + isize;
-
-    while (iptr < iend) {
-      si->usi_data = *iptr;
+  for (i = 0; i < ub->ub_entries - ub->ub_cnt; i++) {
+    kread(hdl, ub_bucket[i], ub_data, isize);
+    for (j = 0; j < isize; j += sizeof(uintptr_t)) {
+      si->usi_data = *(uintptr_t*)(ub_data + j);
       (*upd)(si);
-      iptr += sizeof(uintptr_t);
     }
-*/
   }
 
   free (ub_data);
@@ -358,7 +352,7 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
   char uk_name [MEMTYPE_MAXNAME], uz_name [MEMTYPE_MAXNAME];
   LIST_HEAD(, uma_keg) uma_kegs;
 
-  si.usi_uk = NULL;
+  hdl->usc_uk = NULL;
   si.usi_arg = arg;
 
   /* read symbols */
@@ -374,10 +368,12 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
   kread_symbol(hdl, KSYM_ALLCPUS, &all_cpus, cpusetsize);
 
   /* scan globals */
-  scan_globals(hdl, &si, upd);
+  if (hdl->usc_flags & USCAN_GLOBAL)
+    scan_globals(hdl, &si, upd);
 
   /* scan kernel stacks */
-  scan_kstacks(hdl, &si, upd);
+  if (hdl->usc_flags & USCAN_KSTACK)  
+    scan_kstacks(hdl, &si, upd);
 
   /**
    * uma_zone ends in an array of mp_maxid cache entries.
@@ -393,20 +389,26 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
     int mt_free = 0;
     
     kread(hdl, ukp, &uk, sizeof(uk));
-    si.usi_uk = &uk;
+    hdl->usc_uk = &uk;
 
     kread_string(hdl, uk.uk_name, uk_name, MEMTYPE_MAXNAME);
     si.usi_name = uk_name;
     si.usi_size = uk.uk_size;
     
-    /* full/part/free slabs */
+    // full/part/free slabs
     uint32_t uk_freecount = 0;
-    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_full_slab), &si, upd, FULL_SLABS);
-    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
-    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
+    if (hdl->usc_flags & USCAN_SLAB) {
+      uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_full_slab), &si, upd, FULL_SLABS);
+      uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
+      uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
 
-    assert (uk_freecount == uk.uk_free);
-  
+      assert (uk_freecount == uk.uk_free);
+    }
+
+    // no point to continue if we are not scanning buckets
+    if (!(hdl->usc_flags & USCAN_BUCKET))
+      continue;
+
     // zones
     struct uma_zone *uzp;
     for (uzp = LIST_FIRST(&uk.uk_zones); uzp != 0;
@@ -414,7 +416,7 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
 
       // get zone (without or with caches)
       kread (hdl, uzp, uz, uz_len);
-      si.usi_uz = uz;
+      hdl->usc_uz = uz;
       
       // the zone's keg needs to point to our keg
       assert (ukp == uz->uz_klink.kl_keg);
@@ -444,7 +446,6 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
             continue;
           
           struct uma_cache *uc = &uz->uz_cpu[cpu];
-          uc;
           mt_free += scan_bucket(hdl, uc->uc_allocbucket, ub, &si, upd);
           mt_free += scan_bucket(hdl, uc->uc_freebucket, ub, &si, upd);
         }

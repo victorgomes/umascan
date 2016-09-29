@@ -28,10 +28,6 @@
 #ifndef _UMASCAN_H_
 #define _UMASCAN_H_
 
-#include <sys/cpuset.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
-
 /* symbols in kernel */
 #define KSYM_UMA_KEGS     0
 #define KSYM_MP_MAXCPUS   1
@@ -40,34 +36,32 @@
 #define KSYM_ALLPROC      4
 #define KSYM_SIZE         6
 
+/* umascan flags */
+#define USCAN_SLAB      0x1
+#define USCAN_BUCKET    0x2
+#define USCAN_KSTACK    0x4
+#define USCAN_GLOBAL    0x8
+
+#define USCAN_DEFAULT   0xD
+#define USCAN_ALL       0xF
+
 struct usc_hdl;
 typedef struct usc_hdl* usc_hdl_t;
 
-typedef enum usc_type {
-  USCAN_SLAB,
-  USCAN_BUCKET,
-  USCAN_REGISTER,
-  USCAN_FRAME,
-  USCAN_DATA
-} usc_type_t;
-
 struct usc_info {
-  uma_keg_t usi_uk; 
-  uma_zone_t usi_uz;
-  uma_slab_t usi_us;
-  const char *usi_name;
-  usc_type_t usi_type; 
-  uintptr_t usi_data;     /* value of the current data being scanned */
-  vm_offset_t usi_iaddr;  /* address of the beginning of the item  */
-  uintptr_t usi_size;     /* size of item */
-  void * usi_arg;         /* private args to be passed when scanning */
+  const char *usi_name;  /* zone name, register name, ... */
+  int         usi_flag;  /* what is being scanned */
+  uintptr_t   usi_data;  /* value of the current data being scanned */
+  vm_offset_t usi_iaddr; /* address of the beginning of the item  */
+  uintptr_t   usi_size;  /* size of item */
+  void       *usi_arg;   /* private args to be passed when scanning */
 };
 typedef struct usc_info* usc_info_t;
 
 typedef void (*umascan_t)(usc_info_t);
 
 /* libumascan */
-usc_hdl_t usc_create(const char *kernel, const char *core);
+usc_hdl_t usc_create(const char *kernel, const char *core, int flags);
 void usc_delete (usc_hdl_t hdl);
 void umascan(usc_hdl_t hdl, umascan_t usc, void *args);
 

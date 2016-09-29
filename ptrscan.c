@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <err.h>
 #include <yaml.h>
 
@@ -107,18 +108,6 @@ plist_print (struct plist *head)
       printf("\t\t%s: %d\n", uz->uz_name, uz->uz_count);
     }
   }
-}
-
-static void
-print_slab_flags (uint8_t flag)
-{
-#define slab_flag(mask) if (flag & UMA_SLAB_##mask) printf("UMA_SLAB_%s", #mask);
-  slab_flag(BOOT)
-  slab_flag(KMEM)
-  slab_flag(KERNEL)
-  slab_flag(PRIV)
-  slab_flag(OFFP)
-  slab_flag(MALLOC)
 }
 
 static void
@@ -207,7 +196,7 @@ plist_from_file(FILE * fd)
       }
       break;
     case YAML_SCALAR_EVENT: 
-      tok = e.data.scalar.value;
+      tok = (char*) e.data.scalar.value;
       switch(flag) {
       case PARSE_TOP:
         if (strcmp(tok, "pointers") == 0)

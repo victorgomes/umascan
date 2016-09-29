@@ -41,7 +41,7 @@ struct amd64_frame {
   long f_arg0;
 };
 
-void scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd);
+void scan_kstacks(usc_hdl_t, usc_info_t, umascan_t);
 
 void
 scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd)
@@ -93,8 +93,11 @@ scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd)
       si->usi_name = "Stack frame arguments";
       f_addr = (struct amd64_frame*) pcb.pcb_rbp;
       while(1) {
+        if (!f_addr)
+          break;
+
         if (!INKERNEL((unsigned long)f_addr)) {
-          warnx ("frame addr: 0x%lx not in kernel.", (uintptr_t)f_addr);
+          warnx ("frame (%p) not in kernel.", f_addr);
           break;
         }
 

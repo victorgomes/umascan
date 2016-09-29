@@ -174,7 +174,7 @@ main(int argc, char *argv[])
   scn_mode_t mode;
   const char *vmcore = NULL, *kernel = NULL;
   char *s;
-  int ch, verbose = 0, dumpnr = -1;
+  int ch, usc_flags = 0, verbose = 0, dumpnr = -1;
   struct plist* lst;
 
   debug = 0;
@@ -198,6 +198,7 @@ main(int argc, char *argv[])
       vmcore = strdup(optarg);
       break;
     case 'b':
+      usc_flags = USCAN_BUCKET;
       mode = M_SCAN_BUCKETS;
       break;
     case 's':
@@ -251,7 +252,7 @@ main(int argc, char *argv[])
   if (fd == NULL)
     fd = stdin;
 
-  usc_hdl_t hdl = usc_create (kernel, vmcore);
+  usc_hdl_t hdl = usc_create (kernel, vmcore, usc_flags);
 
   if (verbose) {
     warnx("core file: %s", vmcore);
