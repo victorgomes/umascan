@@ -7,7 +7,7 @@ IGNORE_PRAGMA=
 WITH_DTRACE=
 
 CFLAGS=-g -I/usr/local/include 
-SRCS=umascan.c mhdr.c ptrscan.c main.c
+SRCS=umascan.c ptrscan.c main.c
 LDADD=	-lelf -lkvm -lyaml -L/usr/local/lib
 
 .if defined(WITH_DTRACE)

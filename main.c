@@ -46,7 +46,6 @@ int debug; // Debug level (usually 0)
 typedef enum {
   M_NONE,
   M_QUERY_KTHR,
-  M_QUERY_MHDR,
   M_SCAN_SLABS,
   M_SCAN_BUCKETS,
   M_DTRACE
@@ -202,8 +201,6 @@ main(int argc, char *argv[])
     case 'q':
       if (strcmp(optarg, "kthr") == 0)
         mode = M_QUERY_KTHR;
-      else if (strcmp(optarg, "mhdr") == 0)
-        mode = M_QUERY_MHDR;
       else
         usage();
       break;
@@ -236,11 +233,6 @@ main(int argc, char *argv[])
   if (vmcore == NULL && dumpnr >= 0)
     vmcore = vmcore_from_dumpnr(dumpnr);
   
-  if (vmcore == NULL && mode == M_QUERY_MHDR) {
-    warnx("specify minidump core with flag -c");
-    usage();
-  }
-
   // if still no core, use live memory
   if (vmcore == NULL)
     vmcore = _PATH_MEM;
@@ -278,11 +270,6 @@ main(int argc, char *argv[])
   {
     kread_kthr(hdl);
     print_kthr(hdl);
-    break;
-  }
-  case M_QUERY_MHDR:
-  {
-    print_mhdr(hdl);
     break;
   }
   case (M_SCAN_SLABS):

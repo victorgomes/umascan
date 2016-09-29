@@ -65,7 +65,6 @@ struct usc_hdl {
   int usc_maxcpus;
   int usc_maxid;
   struct proc* usc_allproc;
-  struct proc* usc_zombproc; // unused
   struct pcb* usc_dumppcb;
   int usc_dumptid;
   cpuset_t usc_stopped_cpus;
@@ -97,8 +96,6 @@ struct nlist ksymbols[] = {
   { .n_name = "_dumptid" },
 #define KSYM_STOPPED_CPUS 7
   { .n_name = "_stopped_cpus" },
-#define KSYM_ZOMBPROC     8
-  { .n_name = "_zombproc" },
   { .n_name = "" },
 };
 
@@ -108,7 +105,7 @@ static void
 kread(kvm_t *kd, const void* addr, void *buf, size_t size)
 {
   ssize_t ret;
-  ret = kvm_read(kd, (uintptr_t) addr, buf, size);
+  ret = kvm_read(kd, (uintptr_t)addr, buf, size);
   if (ret < 0)
     errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
   if ((size_t)ret != size)
@@ -118,30 +115,18 @@ kread(kvm_t *kd, const void* addr, void *buf, size_t size)
 static void
 kread_symbol(kvm_t *kd, int index, void *buf, size_t size)
 {
-  ssize_t ret;
   uintptr_t addr = ksymbols[index].n_value;
   if (addr == 0)
     err(-1, "symbol address null");
-  ret = kvm_read(kd, addr, buf, size);
-  if (ret < 0)
-    errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
-  if ((size_t)ret != size)
-    errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+  kread(kd, (void*)addr, buf, size);
 }
 
 static void
 kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
 {
-  ssize_t ret;
   int i;
-
   for (i = 0; i < buflen; i++) {
-    ret = kvm_read(kd, (uintptr_t)addr + i,
-        &(buf[i]), sizeof(char));
-    if (ret < 0)
-      errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
-    if ((size_t)ret != sizeof(char))
-      errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+    kread(kd, (void*)((uint8_t*)addr + i), &(buf[i]), sizeof(char));
     if (buf[i] == '\0')
       return;
   }
@@ -202,11 +187,6 @@ create_usc_hdl (const char *kernel, const char *core)
   if (cpusetsize != -1 && (u_long)cpusetsize <= sizeof(cpuset_t))
     kread_symbol(kd, KSYM_STOPPED_CPUS, &hdl->usc_stopped_cpus, cpusetsize);
 
-/* TODO: zombproc unused
-  kread_symbol(kd, KSYM_ZOMBPROC, &paddr, sizeof(paddr));
-  printf("zombproc addr: 0x%lx\n", paddr);
-*/
-
   return hdl;
 }
 
@@ -252,8 +232,6 @@ kread_kthr(usc_hdl_t hdl)
 
     while (td_addr != 0) {
       kread(kd, td_addr, &td, sizeof(td));
-
-      //db_trace_thread(td.td_tid, -1);
 
       kt = malloc(sizeof(struct kthr));
 
