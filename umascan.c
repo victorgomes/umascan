@@ -27,20 +27,9 @@
 
 #include <sys/param.h>
 #include <sys/user.h>
-#include <sys/stat.h>
-#include <sys/cpuset.h>
-#include <sys/proc.h>
-#include <machine/pcb.h>
-
-#define LIBMEMSTAT  /* Cause vm_page.h not to include opt_vmpage.h */
-#include <vm/vm.h>
-#include <vm/vm_page.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
 
 #include <err.h>
 #include <kvm.h>
-#include <limits.h>
 #include <sysexits.h>
 #include <memstat.h>
 
@@ -58,72 +47,126 @@
 
 extern int debug;
 
-struct usc_hdl {
-  kvm_t *usc_kd;
-  const char *usc_symfile;
-  struct uma_keg *usc_masterkeg;
-  int usc_maxcpus;
-  int usc_maxid;
-  struct proc* usc_allproc;
-  struct pcb* usc_dumppcb;
-  int usc_dumptid;
-  cpuset_t usc_stopped_cpus;
-};
+/* machine dependent */
+void scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd);
 
-enum us_type {
+typedef enum usc_slabinkeg {
   FULL_SLABS,
   PART_SLABS,
   FREE_SLABS
+} usc_slabinkeg_t;
+
+struct usc_hdl {
+  kvm_t *usc_kd;
+  Elf *usc_e;
+  int usc_symfd;
+  struct nlist usc_ksym[KSYM_SIZE];
 };
 
-struct nlist ksymbols[] = {
-#define KSYM_UMA_KEGS     0
-  { .n_name = "_uma_kegs", .n_value = 0 },
-#define KSYM_MP_MAXCPUS   1
-  { .n_name = "_mp_maxcpus" },
-#define KSYM_MP_MAXID     2 
-  { .n_name = "_mp_maxid" },
-#define KSYM_ALLCPUS      3
-  { .n_name = "_all_cpus" },
-#define KSYM_ALLPROC      4
-  { .n_name = "_allproc" },
-#define KSYM_DUMPPCB      5
-  { .n_name = "_dumppcb" },
-#define KSYM_DUMPTID      6
-  { .n_name = "_dumptid" },
-#define KSYM_STOPPED_CPUS 7
-  { .n_name = "_stopped_cpus" },
-  { .n_name = "" },
-};
+usc_hdl_t
+usc_create (const char *kernel, const char *core)
+{
+  int fd;
+  kvm_t* kd;
+  Elf* e = NULL;
+  usc_hdl_t hdl = NULL;
+  
+  if (elf_version(EV_CURRENT) == EV_NONE) {
+    warnx("ELF library initialization failed: %s", elf_errmsg(-1));
+    return NULL;
+  }
 
-#define KSYM_INITIALISED (ksymbols[0].n_value != 0)
+  if ((kd = kvm_openfiles(kernel, core, NULL, 0, "kvm")) == NULL) {
+    warnx("kvm_open: %s", kvm_geterr(kd));
+    return NULL;
+  }
+  if ((fd = open(kernel, O_RDONLY, 0)) < 0) {
+    warn("open \"%s\" failed", kernel);
+    goto error;
+  }
 
-static void
-kread(kvm_t *kd, const void* addr, void *buf, size_t size)
+  if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+    warnx("elf begin() failed: %s", elf_errmsg(-1));
+    goto error;
+  }
+
+  if (elf_kind(e) != ELF_K_ELF) {
+    warnx("\"%s\" is not an ELF object", kernel);
+    goto error;
+  }
+
+  hdl = malloc(sizeof(struct usc_hdl));
+  hdl->usc_kd = kd;
+  hdl->usc_e = e;
+  hdl->usc_symfd = fd;
+
+  hdl->usc_ksym[KSYM_UMA_KEGS].n_value = 0;
+  hdl->usc_ksym[KSYM_UMA_KEGS].n_name = "_uma_kegs";
+  hdl->usc_ksym[KSYM_MP_MAXCPUS].n_name = "_mp_maxcpus";
+  hdl->usc_ksym[KSYM_MP_MAXID].n_name = "_mp_maxid";
+  hdl->usc_ksym[KSYM_ALLCPUS].n_name = "_all_cpus";
+  hdl->usc_ksym[KSYM_ALLPROC].n_name = "_allproc";
+  hdl->usc_ksym[KSYM_SIZE-1].n_name = "";
+
+  if (kvm_nlist(kd, hdl->usc_ksym) != 0) {
+    warnx("kvm_nlist: %s", kvm_geterr(kd));
+    goto error;
+  }
+
+  if (hdl->usc_ksym[KSYM_UMA_KEGS].n_type == 0 || hdl->usc_ksym[KSYM_UMA_KEGS].n_value == 0) {
+    warnx("kvm_nlist return");
+    goto error;
+  }
+
+  return hdl;
+
+error:
+  if (e)
+    elf_end(e);
+  close(fd); 
+  kvm_close(kd);
+  if (hdl)
+    free(hdl);
+  return NULL;
+}
+
+void
+usc_delete (usc_hdl_t hdl)
+{
+  elf_end(hdl->usc_e);
+  close(hdl->usc_symfd);  
+  kvm_close(hdl->usc_kd);
+  free(hdl);
+}
+
+void
+kread(usc_hdl_t hdl, const void* addr, void *buf, size_t size)
 {
   ssize_t ret;
-  ret = kvm_read(kd, (uintptr_t)addr, buf, size);
+  if (!INKERNEL((uintptr_t)addr))
+    warnx("address %p is not located in kernel area", addr);
+  ret = kvm_read(hdl->usc_kd, (uintptr_t)addr, buf, size);
   if (ret < 0)
-    errx(MEMSTAT_ERROR_KVM, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM, "kread (%p): %s", addr, kvm_geterr(hdl->usc_kd));
   if ((size_t)ret != size)
-    errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kvm_read: %s", kvm_geterr(kd));
+    errx(MEMSTAT_ERROR_KVM_SHORTREAD, "kread (%p): %s", addr, kvm_geterr(hdl->usc_kd));
 }
 
-static void
-kread_symbol(kvm_t *kd, int index, void *buf, size_t size)
+void
+kread_symbol(usc_hdl_t hdl, int index, void *buf, size_t size)
 {
-  uintptr_t addr = ksymbols[index].n_value;
+  uintptr_t addr = hdl->usc_ksym[index].n_value;
   if (addr == 0)
-    err(-1, "symbol address null");
-  kread(kd, (void*)addr, buf, size);
+    err(-1, "%s: symbol address null", hdl->usc_ksym[index].n_name);
+  kread(hdl, (void*)addr, buf, size);
 }
 
-static void
-kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
+void
+kread_string(usc_hdl_t hdl, const void *addr, char *buf, int buflen)
 {
   int i;
   for (i = 0; i < buflen; i++) {
-    kread(kd, (void*)((uint8_t*)addr + i), &(buf[i]), sizeof(char));
+    kread(hdl, (void*)((uint8_t*)addr + i), &(buf[i]), sizeof(char));
     if (buf[i] == '\0')
       return;
   }
@@ -131,112 +174,28 @@ kread_string(kvm_t *kd, const void *addr, char *buf, int buflen)
   buf[i-1] = '\0';
 }
 
-void
-memread (usc_hdl_t hdl, const void *addr, void *buf, size_t size)
-{
-  kread (hdl->usc_kd, addr, buf, size);
-}
-
 static void
-init_ksym(kvm_t *kd)
+scan_globals (usc_hdl_t hdl, usc_info_t si, umascan_t upd)
 {
-  if (kvm_nlist(kd, ksymbols) != 0)
-    errx(EX_NOINPUT, "kvm_nlist: %s", kvm_geterr(kd));
-
-  if (ksymbols[KSYM_UMA_KEGS].n_type == 0 ||
-      ksymbols[KSYM_UMA_KEGS].n_value == 0)
-    errx(EX_DATAERR, "kvm_nlist return");
-}
-
-usc_hdl_t
-create_usc_hdl (const char *kernel, const char *core)
-{
-  kvm_t* kd;
-  usc_hdl_t hdl;
-  int cpusetsize;
-
-  kd = kvm_openfiles(kernel, core, NULL, 0, "kvm");
-  if (kd == NULL)
-    errx(EX_NOINPUT, "kvm_open: %s", kvm_geterr(kd));
-
-  hdl = malloc(sizeof(struct usc_hdl));
-  hdl->usc_kd = kd;
-  
-  hdl->usc_symfile = kernel;
-
-  if (!KSYM_INITIALISED)
-    init_ksym(kd);
-
-  kread_symbol(kd, KSYM_ALLPROC, &hdl->usc_allproc, sizeof(hdl->usc_allproc));
-  if (debug > 0)
-    printf("allproc addr: 0x%lx\n", (uintptr_t)hdl->usc_allproc);
-
-  kread_symbol(kd, KSYM_DUMPPCB, &hdl->usc_dumppcb, sizeof(hdl->usc_dumppcb));
-  if (debug > 0)
-    printf("dumppcb addr: 0x%lx\n", (uintptr_t)hdl->usc_dumppcb);
-
-  kread_symbol(kd, KSYM_DUMPTID, &hdl->usc_dumptid, sizeof(hdl->usc_dumptid));
-  if (debug > 0)
-    printf("dumptid: %d\n",  hdl->usc_dumptid);
-
-  CPU_ZERO(&hdl->usc_stopped_cpus);
-  cpusetsize = sysconf(_SC_CPUSET_SIZE);
-  if (cpusetsize != -1 && (u_long)cpusetsize <= sizeof(cpuset_t))
-    kread_symbol(kd, KSYM_STOPPED_CPUS, &hdl->usc_stopped_cpus, cpusetsize);
-
-  return hdl;
-}
-
-void
-delete_usc_hdl(usc_hdl_t hdl)
-{
-  kvm_close(hdl->usc_kd);
-  free(hdl);
-}
-
-struct amd64_frame {
-  struct amd64_frame *f_frame;
-  long f_retaddr;
-  long f_arg0;
-};
-
-static void
-elf_header(kvm_t *kd, const char *symfile, usc_info_t si, umascan_t upd)
-{
-  int fd;
-  Elf *e;
   char *name;
   Elf_Scn *scn;
   GElf_Shdr shdr;
-  size_t shstrndx;
-  unsigned long i;
+  size_t i, shstrndx;
   uint8_t* data;
 
-  if (elf_version(EV_CURRENT) == EV_NONE)
-    errx(EX_SOFTWARE, "ELF library initialization failed: %s", elf_errmsg(-1));
-
-  if ((fd = open(symfile, O_RDONLY, 0)) < 0)
-    err(EX_NOINPUT, "open \"%s\" failed", symfile);
-
-  if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL)
-    errx(EX_SOFTWARE, "elf begin() failed: %s", elf_errmsg(-1));
-
-  if (elf_kind(e) != ELF_K_ELF)
-    errx(EX_DATAERR, "\"%s\" is not an ELF object", symfile);
-
-  if (elf_getshdrstrndx(e, &shstrndx) != 0)
+  if (elf_getshdrstrndx(hdl->usc_e, &shstrndx) != 0)
     errx(EX_DATAERR, "elf_getshdrstrndx() failed: %s", elf_errmsg(-1));
 
   scn = NULL;
 
-  while ((scn = elf_nextscn(e, scn)) != NULL) {
+  while ((scn = elf_nextscn(hdl->usc_e, scn)) != NULL) {
     if (gelf_getshdr(scn, &shdr) != &shdr)
       errx(EX_SOFTWARE, "getshdr() failed: %s", elf_errmsg(-1));
 
     if (shdr.sh_flags & ~(SHF_ALLOC | SHF_WRITE) || shdr.sh_flags == 0)
       continue;
 
-    if ((name = elf_strptr(e, shstrndx, shdr.sh_name)) == NULL)
+    if ((name = elf_strptr(hdl->usc_e, shstrndx, shdr.sh_name)) == NULL)
       errx(EX_SOFTWARE, "elf_strptr() failed: %s", elf_errmsg(-1));
 
     if (!INKERNEL(shdr.sh_addr)) {
@@ -245,7 +204,7 @@ elf_header(kvm_t *kd, const char *symfile, usc_info_t si, umascan_t upd)
     }
     
     data = malloc(shdr.sh_size);
-    kread(kd, (void*)shdr.sh_addr, data, shdr.sh_size);
+    kread(hdl, (void*)shdr.sh_addr, data, shdr.sh_size);
     
     for(i = 0; i < shdr.sh_size; i+=8) {
       si->usi_name = name;
@@ -255,114 +214,10 @@ elf_header(kvm_t *kd, const char *symfile, usc_info_t si, umascan_t upd)
 
     free(data);
   }
-
-  elf_end(e);
-  close(fd);
-}
-
-static void
-scan_kstacks(kvm_t *kd, struct proc* allproc, usc_info_t si, umascan_t upd)
-{
-  struct proc *p_addr, p;
-  struct thread *td_addr, td;
-  struct pcb pcb;
-  struct amd64_frame *f_addr, frame;
-  uintptr_t f_args_addr, *f_args, *f_arg;
-  size_t f_args_size;
-  char reg_name[15];
-  
-  p_addr = allproc;
-  while (p_addr != 0) {
-    kread(kd, p_addr, &p, sizeof(p));
-    td_addr = TAILQ_FIRST(&p.p_threads);
-
-    while (td_addr != 0) {
-      kread(kd, td_addr, &td, sizeof(td));
-      kread(kd, td.td_pcb, &pcb, sizeof(struct pcb));
-
-      /* scan registers */
-#define scan_reg(r) \
-  strcpy(reg_name, "Register "); \
-  si->usi_name = strcat(reg_name, #r); \
-  si->usi_data = pcb.pcb_##r; \
-  (*upd)(si);
-        scan_reg(r15);
-        scan_reg(r14);
-        scan_reg(r13);
-        scan_reg(r12);
-        scan_reg(rbx);
-        scan_reg(rip);
-        scan_reg(cr0);
-        scan_reg(cr2);
-        scan_reg(cr3);
-        scan_reg(cr4);
-        scan_reg(dr0);
-        scan_reg(dr1);
-        scan_reg(dr2);
-        scan_reg(dr3);
-        scan_reg(dr6);
-        scan_reg(dr7);
-
-      // scan frames
-      si->usi_name = "Stack frame arguments";
-      f_addr = (struct amd64_frame*) pcb.pcb_rbp;
-      while(1) {
-        if (!INKERNEL((unsigned long)f_addr)) {
-          warnx ("frame addr: 0x%lx not in kernel.", (uintptr_t)f_addr);
-          break;
-        }
-
-        kread(kd, f_addr, &frame, sizeof(struct amd64_frame));
-        if (!INKERNEL((uintptr_t)frame.f_retaddr)) {
-          warnx( "return address of frame is not in kernel.");
-          break;
-        }
-
-        // loop exit condition
-        if (frame.f_frame <= f_addr ||
-            (vm_offset_t)frame.f_frame >= td.td_kstack + td.td_kstack_pages * PAGE_SIZE) {
-          break;
-        }
-
-        f_args_addr = (uintptr_t) f_addr + 16;
-        f_args_size = ((uintptr_t)frame.f_frame) - f_args_addr;
-        f_args = malloc(f_args_size);
-        kread(kd, (void*)f_args_addr, f_args, f_args_size);
-
-        // scan arguments inside frames
-        f_arg = (uintptr_t *)f_args;
-        while (f_args_addr < (uintptr_t)frame.f_frame) {
-          si->usi_data = *f_arg;
-          (*upd)(si);
-          f_arg++;
-          f_args_addr+=8;
-        }
-        free(f_args);
-
-        f_addr = frame.f_frame;
-      } 
-      td_addr = TAILQ_NEXT(&td, td_plist);
-    }
-    p_addr = LIST_NEXT(&p, p_list);
-  }
-
-
-}
-
-static void
-print_slab_flags (uint8_t flag)
-{
-#define slab_flag(mask) if (flag & UMA_SLAB_##mask) printf("UMA_SLAB_%s", #mask);
-  slab_flag(BOOT)
-  slab_flag(KMEM)
-  slab_flag(KERNEL)
-  slab_flag(PRIV)
-  slab_flag(OFFP)
-  slab_flag(MALLOC)
 }
 
 static int
-scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us_type ust)
+scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc_slabinkeg_t usk)
 {
   struct uma_slab us;
   size_t isize, irsize, ussize;
@@ -381,12 +236,12 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
   while (usp != NULL) {
     us_freecount = 0;
     
-    kread(kd, usp, &us, sizeof(struct uma_slab));
+    kread(hdl, usp, &us, sizeof(struct uma_slab));
     si->usi_us = &us;
 
-    kread(kd, us.us_data, us_data, ussize);
+    kread(hdl, us.us_data, us_data, ussize);
 
-    if (ust == FREE_SLABS) {
+    if (usk == FREE_SLABS) {
 
     }
 
@@ -415,7 +270,7 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
     }
 
     /* free slabs do not seem to be using us_freecount field */
-    if (ust != FREE_SLABS)
+    if (usk != FREE_SLABS)
       assert (us_freecount == us.us_freecount);
 
     uk_freecount += us_freecount;
@@ -427,7 +282,7 @@ scan_slab(kvm_t *kd, struct uma_slab *usp, usc_info_t si, umascan_t upd, enum us
 }
 
 static int
-scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
+scan_bucket(usc_hdl_t hdl, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
 {
   size_t ub_size, isize;
   void ** ub_bucket;
@@ -438,7 +293,7 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t
     return 0 ;
 
   // get a bucket (without data table)
-  kread (kd, ubp, ub, sizeof(struct uma_bucket));
+  kread(hdl, ubp, ub, sizeof(struct uma_bucket));
 
   if (!upd)
     return ub->ub_cnt;
@@ -450,7 +305,7 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t
   // get data table
   ub_size = sizeof(ub->ub_entries*sizeof(void*));
   ub_bucket = malloc(ub_size);
-  kread (kd, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_size);
+  kread(hdl, ubp + offsetof(struct uma_bucket, ub_bucket), ub_bucket, ub_size);
 
   // allocate data for an item
   isize = si->usi_uz->uz_size;
@@ -478,7 +333,7 @@ scan_bucket(kvm_t *kd, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t
 }
 
 static int
-scan_bucketlist(kvm_t *kd, struct uma_bucket *ubp, usc_info_t si, umascan_t upd)
+scan_bucketlist(usc_hdl_t hdl, struct uma_bucket *ubp, usc_info_t si, umascan_t upd)
 {
   struct uma_bucket ub;
 
@@ -487,7 +342,7 @@ scan_bucketlist(kvm_t *kd, struct uma_bucket *ubp, usc_info_t si, umascan_t upd)
 
   int ub_cnt = 0;
   while (ubp != NULL) {
-    ub_cnt += scan_bucket(kd, ubp, &ub, si, upd);
+    ub_cnt += scan_bucket(hdl, ubp, &ub, si, upd);
     ubp = LIST_NEXT(&ub, ub_link);
   }
 
@@ -501,29 +356,28 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
   int mp_maxcpus, mp_maxid;
   long cpusetsize;
   char uk_name [MEMTYPE_MAXNAME], uz_name [MEMTYPE_MAXNAME];
-  kvm_t* kd;
   LIST_HEAD(, uma_keg) uma_kegs;
 
-  kd = hdl->usc_kd;
   si.usi_uk = NULL;
   si.usi_arg = arg;
 
-  // Read symbols
-  if (!KSYM_INITIALISED)
-    init_ksym(kd);
-  kread_symbol(kd, KSYM_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus));
-  kread_symbol(kd, KSYM_MP_MAXID, &mp_maxid, sizeof(mp_maxid));
-  kread_symbol(kd, KSYM_UMA_KEGS, &uma_kegs, sizeof(uma_kegs));
+  /* read symbols */
+  kread_symbol(hdl, KSYM_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus));
+  kread_symbol(hdl, KSYM_MP_MAXID, &mp_maxid, sizeof(mp_maxid));
+  kread_symbol(hdl, KSYM_UMA_KEGS, &uma_kegs, sizeof(uma_kegs));
   
   cpusetsize = sysconf(_SC_CPUSET_SIZE);
   if (cpusetsize == -1 || (u_long)cpusetsize > sizeof(cpuset_t))
     err(MEMSTAT_ERROR_KVM_NOSYMBOL, "bad cpusetsize");
 
   CPU_ZERO(&all_cpus);  
-  kread_symbol(kd, KSYM_ALLCPUS, &all_cpus, cpusetsize);
+  kread_symbol(hdl, KSYM_ALLCPUS, &all_cpus, cpusetsize);
+
+  /* scan globals */
+  scan_globals(hdl, &si, upd);
 
   /* scan kernel stacks */
-  scan_kstacks(kd, hdl->usc_allproc, &si, upd);
+  scan_kstacks(hdl, &si, upd);
 
   /**
    * uma_zone ends in an array of mp_maxid cache entries.
@@ -538,18 +392,18 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
       LIST_NEXT(&uk, uk_link)) {
     int mt_free = 0;
     
-    kread(kd, ukp, &uk, sizeof(uk));
+    kread(hdl, ukp, &uk, sizeof(uk));
     si.usi_uk = &uk;
 
-    kread_string(kd, uk.uk_name, uk_name, MEMTYPE_MAXNAME);
+    kread_string(hdl, uk.uk_name, uk_name, MEMTYPE_MAXNAME);
     si.usi_name = uk_name;
     si.usi_size = uk.uk_size;
     
-    // full/part/free slabs
+    /* full/part/free slabs */
     uint32_t uk_freecount = 0;
-    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_full_slab), &si, upd, FULL_SLABS);
-    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
-    uk_freecount += scan_slab (kd, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
+    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_full_slab), &si, upd, FULL_SLABS);
+    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_free_slab), &si, upd, FREE_SLABS);
+    uk_freecount += scan_slab (hdl, LIST_FIRST(&uk.uk_part_slab), &si, upd, PART_SLABS);
 
     assert (uk_freecount == uk.uk_free);
   
@@ -559,13 +413,13 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
          uzp = LIST_NEXT(uz, uz_link)) {
 
       // get zone (without or with caches)
-      kread (kd, uzp, uz, uz_len);
+      kread (hdl, uzp, uz, uz_len);
       si.usi_uz = uz;
       
       // the zone's keg needs to point to our keg
       assert (ukp == uz->uz_klink.kl_keg);
 
-      kread_string(kd, uz->uz_name, uz_name, MEMTYPE_MAXNAME);
+      kread_string(hdl, uz->uz_name, uz_name, MEMTYPE_MAXNAME);
       si.usi_name = uz_name;
 
       // if zone is not secondary or it is the head of the list 
@@ -580,7 +434,7 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
         mt_free += uk.uk_free;
       }
 
-      mt_free += scan_bucketlist(kd, LIST_FIRST(&uz->uz_buckets), &si, upd);
+      mt_free += scan_bucketlist(hdl, LIST_FIRST(&uz->uz_buckets), &si, upd);
       
       // if zone has caches per cpu
       if (!(uk.uk_flags & UMA_ZFLAG_INTERNAL)) {
@@ -591,8 +445,8 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
           
           struct uma_cache *uc = &uz->uz_cpu[cpu];
           uc;
-          mt_free += scan_bucket(kd, uc->uc_allocbucket, ub, &si, upd);
-          mt_free += scan_bucket(kd, uc->uc_freebucket, ub, &si, upd);
+          mt_free += scan_bucket(hdl, uc->uc_allocbucket, ub, &si, upd);
+          mt_free += scan_bucket(hdl, uc->uc_freebucket, ub, &si, upd);
         }
         free(ub);
       }
@@ -600,5 +454,4 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
     } // zones
   } // kegs
   free(uz);
-  elf_header(kd, hdl->usc_symfile, &si, upd);
 }

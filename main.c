@@ -41,7 +41,7 @@
 
 #define CRASHDIR "/var/crash"
 
-int debug; // Debug level (usually 0)
+int debug;
 
 typedef enum {
   M_NONE,
@@ -207,6 +207,7 @@ main(int argc, char *argv[])
       mode = M_DTRACE;
       break;
     case 'd':
+      verbose = 1;
       debug = strtol(optarg, &s, 0);
       break;
     case 'h':
@@ -250,7 +251,7 @@ main(int argc, char *argv[])
   if (fd == NULL)
     fd = stdin;
 
-  usc_hdl_t hdl = create_usc_hdl (kernel, vmcore);
+  usc_hdl_t hdl = usc_create (kernel, vmcore);
 
   if (verbose) {
     warnx("core file: %s", vmcore);
@@ -261,11 +262,11 @@ main(int argc, char *argv[])
   switch(mode) {
   case (M_SCAN_SLABS):
   case (M_SCAN_BUCKETS):
-    lst = from_file(fd);
+    lst = plist_from_file(fd);
     break;
   case (M_DTRACE):
-    lst = from_dtrace(fd);
-    print_plist(lst);
+    lst = plist_from_dtrace(fd);
+    plist_print(lst);
     break;
   case (M_NONE):
   default:
@@ -274,10 +275,10 @@ main(int argc, char *argv[])
 
   if (lst) {
     ptrscan (hdl, lst);
-    destroy_plist(lst);
+    plist_delete(lst);
   }  
 
-  delete_usc_hdl(hdl);
+  usc_delete (hdl);
 
   return (0);
 }

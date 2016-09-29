@@ -25,21 +25,7 @@
  *
  */
 
-#include <sys/types.h>
 #include <sys/param.h>
-#include <sys/queue.h>
-#include <sys/cpuset.h>
-
-#define LIBMEMSTAT
-#include <vm/vm.h>
-#include <vm/vm_page.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <err.h>
 #include <yaml.h>
 
@@ -66,7 +52,7 @@ struct p_info {
 SLIST_HEAD(plist, p_info);
 
 struct plist*
-create_plist()
+plist_create()
 {
   struct plist* lst = malloc(sizeof(struct plist));
   if (lst)
@@ -75,7 +61,7 @@ create_plist()
 }
 
 void
-destroy_plist(struct plist* head)
+plist_delete(struct plist* head)
 {
   struct p_info * p;
   SLIST_FOREACH(p, head, p_link) {
@@ -85,7 +71,7 @@ destroy_plist(struct plist* head)
 }
 
 int
-in_plist (uintptr_t addr, struct plist *head)
+plist_in (uintptr_t addr, struct plist *head)
 {
   struct p_info *p;
   SLIST_FOREACH(p, head, p_link) {
@@ -96,7 +82,7 @@ in_plist (uintptr_t addr, struct plist *head)
 }
 
 void
-insert_plist (uintptr_t addr, struct plist *head)
+plist_insert (uintptr_t addr, struct plist *head)
 {
   struct p_info *p = malloc(sizeof(struct p_info));
   p->p_addr = addr;
@@ -104,7 +90,7 @@ insert_plist (uintptr_t addr, struct plist *head)
 }
 
 void
-print_plist(struct plist *head)
+plist_print (struct plist *head)
 {
   struct p_info * p;
   struct uz_info *uz;
@@ -124,7 +110,19 @@ print_plist(struct plist *head)
 }
 
 static void
-parse(yaml_parser_t *p, yaml_event_t *e, const char *errmsg)
+print_slab_flags (uint8_t flag)
+{
+#define slab_flag(mask) if (flag & UMA_SLAB_##mask) printf("UMA_SLAB_%s", #mask);
+  slab_flag(BOOT)
+  slab_flag(KMEM)
+  slab_flag(KERNEL)
+  slab_flag(PRIV)
+  slab_flag(OFFP)
+  slab_flag(MALLOC)
+}
+
+static void
+parse (yaml_parser_t *p, yaml_event_t *e, const char *errmsg)
 {
   if (!yaml_parser_parse(p, e)) {
     if (!errmsg)
@@ -149,7 +147,7 @@ add_ptr_to_plist (struct plist *head, uintptr_t addr, int rc_offset, const char 
 }
 
 struct plist*
-from_file(FILE * fd)
+plist_from_file(FILE * fd)
 {
   yaml_parser_t parser;
   yaml_event_t e;
@@ -174,7 +172,7 @@ from_file(FILE * fd)
   
   yaml_parser_set_input_file(&parser, fd);
 
-  plist = create_plist();
+  plist = plist_create();
   do {
     parse(&parser, &e, NULL);
 
@@ -313,7 +311,7 @@ ptrscan(usc_hdl_t hdl, struct plist *lst)
     /* only update refc if offset exists and the pointer was found by umascan,
      * otherwise we risk of deferencing a non existing pointer */
     if (p->p_rc_offset != -1 && p->p_zone)
-      memread(hdl, (void*)(p->p_addr + p->p_rc_offset), &p->p_refc, sizeof(int64_t));
+      kread(hdl, (void*)(p->p_addr + p->p_rc_offset), &p->p_refc, sizeof(int64_t));
   }
-  print_plist(lst);
+  plist_print(lst);
 }

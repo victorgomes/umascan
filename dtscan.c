@@ -57,10 +57,10 @@ chewrec (const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
   addr = *(base + rec->dtrd_offset);
 
   /* If we are already know the pointer, just skip */
-  if (in_plist(addr, lst))
+  if (plist_in(addr, lst))
     return DTRACE_CONSUME_NEXT;
 
-  insert_plist(addr, lst);
+  plist_insert(addr, lst);
 
   switch (data->dtpda_flow) {
   case DTRACEFLOW_ENTRY:
@@ -88,7 +88,7 @@ intr (int signo)
 }
 
 struct plist*
-from_dtrace (FILE *fd)
+plist_from_dtrace (FILE *fd)
 {
   struct plist *lst;
   struct sigaction act;
@@ -124,7 +124,7 @@ from_dtrace (FILE *fd)
     err(-1, "could not start instrumentation\n");
   printf("dtrace started... Press CTRL-C to stop.\n");
 
-  lst = create_plist();
+  lst = plist_create();
 
   done = 0;
   do {

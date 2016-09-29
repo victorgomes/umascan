@@ -32,45 +32,58 @@
 #include <vm/uma.h>
 #include <vm/uma_int.h>
 
+/* symbols in kernel */
+#define KSYM_UMA_KEGS     0
+#define KSYM_MP_MAXCPUS   1
+#define KSYM_MP_MAXID     2 
+#define KSYM_ALLCPUS      3
+#define KSYM_ALLPROC      4
+#define KSYM_SIZE         6
+
 struct usc_hdl;
 typedef struct usc_hdl* usc_hdl_t;
 
-enum usc_type {
+typedef enum usc_type {
   USCAN_SLAB,
-  USCAN_BUCKET
-};
+  USCAN_BUCKET,
+  USCAN_REGISTER,
+  USCAN_FRAME,
+  USCAN_DATA
+} usc_type_t;
 
 struct usc_info {
-  struct uma_keg* usi_uk; 
-  struct uma_zone* usi_uz;
-  struct uma_slab* usi_us;
-  char * usi_name;
-  enum usc_type usi_type; 
-  uint64_t usi_data;    // value of the current data being scanned
-  uintptr_t usi_iaddr;  // address of the beginning of the item 
-  uintptr_t usi_size;   // size of item
-  void * usi_arg;       // private args to be passed when scanning
+  uma_keg_t usi_uk; 
+  uma_zone_t usi_uz;
+  uma_slab_t usi_us;
+  const char *usi_name;
+  usc_type_t usi_type; 
+  uintptr_t usi_data;     /* value of the current data being scanned */
+  vm_offset_t usi_iaddr;  /* address of the beginning of the item  */
+  uintptr_t usi_size;     /* size of item */
+  void * usi_arg;         /* private args to be passed when scanning */
 };
 typedef struct usc_info* usc_info_t;
 
 typedef void (*umascan_t)(usc_info_t);
 
 /* libumascan */
-usc_hdl_t create_usc_hdl (const char *kernel, const char *core);
-void delete_usc_hdl (usc_hdl_t hdl);
-void memread (usc_hdl_t, const void *addr, void *buf, size_t size);
+usc_hdl_t usc_create(const char *kernel, const char *core);
+void usc_delete (usc_hdl_t hdl);
 void umascan(usc_hdl_t hdl, umascan_t usc, void *args);
+
+void kread(usc_hdl_t, const void *addr, void *buf, size_t size);
+void kread_symbol(usc_hdl_t hdl, int sym_idx, void *buf, size_t size);
+void kread_string(usc_hdl_t hdl, const void *addr, char *buf, int buflen);
 
 /* pointer list */
 struct plist;
-struct plist* create_plist(void);
-void destroy_plist(struct plist *lst);
-int in_plist(uintptr_t addr, struct plist *lst);
-void insert_plist(uintptr_t addr, struct plist *lst);
-void print_plist(struct plist *lst);
-
-struct plist* from_file(FILE *fd);
-struct plist* from_dtrace(FILE *fd);
+struct plist* plist_create(void);
+void plist_delete(struct plist *lst);
+int plist_in(uintptr_t addr, struct plist *lst);
+void plist_insert(uintptr_t addr, struct plist *lst);
+void plist_print(struct plist *lst);
+struct plist* plist_from_file(FILE *fd);
+struct plist* plist_from_dtrace(FILE *fd);
 
 /* consumers */
 void ptrscan (usc_hdl_t hdl, struct plist* lst);
