@@ -68,9 +68,6 @@ struct usc_hdl {
   struct pcb* usc_dumppcb;
   int usc_dumptid;
   cpuset_t usc_stopped_cpus;
-
-  /* TODO: this shouldn't be here */
-  SLIST_HEAD(, kthr) usc_kthrs;
 };
 
 enum us_type {
@@ -197,66 +194,11 @@ delete_usc_hdl(usc_hdl_t hdl)
   free(hdl);
 }
 
-struct kthr {
-  struct proc* paddr;
-  uintptr_t kaddr;
-  uintptr_t kstack;
-  int kstack_pages;
-  struct pcb* pcb;
-  int tid;
-  int pid;
-  u_char cpu;
-  SLIST_ENTRY(kthr) k_link;
-};
-
 struct amd64_frame {
   struct amd64_frame *f_frame;
   long f_retaddr;
   long f_arg0;
 };
-
-void
-kread_kthr(usc_hdl_t hdl)
-{
-  struct proc *p_addr, p;
-  struct thread *td_addr, td;
-  struct kthr *kt;
-  kvm_t *kd = hdl->usc_kd;
-  p_addr = hdl->usc_allproc;
-  
-  SLIST_INIT(&hdl->usc_kthrs);
-
-  while (p_addr != 0) {
-    kread(kd, p_addr, &p, sizeof(p));
-    td_addr = TAILQ_FIRST(&p.p_threads);
-
-    while (td_addr != 0) {
-      kread(kd, td_addr, &td, sizeof(td));
-
-      kt = malloc(sizeof(struct kthr));
-
-      if (td.td_tid == hdl->usc_dumptid)
-        kt->pcb = hdl->usc_dumppcb;
-      else if (td.td_state == TDS_RUNNING &&
-                CPU_ISSET(td.td_oncpu, &hdl->usc_stopped_cpus))
-        err(-1, "pcb on running cpus (only when online)");
-      else
-        kt->pcb = td.td_pcb;
-
-      kt->kstack = td.td_kstack;
-      kt->kstack_pages = td.td_kstack_pages;
-      kt->tid = td.td_tid;
-      kt->pid = p.p_pid;
-      kt->paddr = p_addr;
-      kt->cpu = td.td_oncpu;
-
-      SLIST_INSERT_HEAD(&hdl->usc_kthrs, kt, k_link);
-      td_addr = TAILQ_NEXT(&td, td_plist);
-    }
-    p_addr = LIST_NEXT(&p, p_list);
-  }
-
-}
 
 static void
 elf_header(kvm_t *kd, const char *symfile, usc_info_t si, umascan_t upd)
@@ -405,30 +347,6 @@ scan_kstacks(kvm_t *kd, struct proc* allproc, usc_info_t si, umascan_t upd)
   }
 
 
-}
-
-void
-print_kthr(usc_hdl_t hdl)
-{
-  struct kthr *kt;
-  SLIST_FOREACH (kt, &hdl->usc_kthrs, k_link) {
-      struct pcb pcb;
-      kread(hdl->usc_kd, kt->pcb, &pcb, sizeof(struct pcb));
-    
-      printf("kthread {\n"
-              "\taddress: 0x%lx\n"
-              "\tkstack: 0x%lx\n"
-              "\tkstack pages: %d\n"
-              "\tPCB address: 0x%lx\n"
-              "\ttid: %d\n"
-              "\tpid: %d\n"
-              "\tcpu: %d\n"
-              "\trsp: %lx\n"
-              "\trbp: %lx\n"
-              "}\n",
-        (uintptr_t)kt->paddr, kt->kstack, kt->kstack_pages, (uintptr_t)kt->pcb, kt->tid, kt->pid,
-        kt->cpu, pcb.pcb_rsp, pcb.pcb_rbp);
-  }
 }
 
 static void

@@ -45,7 +45,6 @@ int debug; // Debug level (usually 0)
 
 typedef enum {
   M_NONE,
-  M_QUERY_KTHR,
   M_SCAN_SLABS,
   M_SCAN_BUCKETS,
   M_DTRACE
@@ -180,7 +179,7 @@ main(int argc, char *argv[])
 
   debug = 0;
 
-  while ((ch = getopt(argc, argv, "hvn:c:d:k:q:szb")) != -1) {
+  while ((ch = getopt(argc, argv, "hvn:c:d:k:szb")) != -1) {
     switch (ch) {
     case 'v':
       verbose = 1;
@@ -197,12 +196,6 @@ main(int argc, char *argv[])
       break;
     case 'c':
       vmcore = strdup(optarg);
-      break;
-    case 'q':
-      if (strcmp(optarg, "kthr") == 0)
-        mode = M_QUERY_KTHR;
-      else
-        usage();
       break;
     case 'b':
       mode = M_SCAN_BUCKETS;
@@ -266,12 +259,6 @@ main(int argc, char *argv[])
  
   lst = NULL;
   switch(mode) {
-  case M_QUERY_KTHR:
-  {
-    kread_kthr(hdl);
-    print_kthr(hdl);
-    break;
-  }
   case (M_SCAN_SLABS):
   case (M_SCAN_BUCKETS):
     lst = from_file(fd);

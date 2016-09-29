@@ -74,7 +74,5 @@ struct plist* from_dtrace(FILE *fd);
 
 /* consumers */
 void ptrscan (usc_hdl_t hdl, struct plist* lst);
-void kread_kthr (usc_hdl_t hdl);
-void print_kthr (usc_hdl_t hdl);
 
 #endif // _UMA_SCAN_H_
