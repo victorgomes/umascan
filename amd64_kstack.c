@@ -33,8 +33,6 @@
 
 #include "umascan.h"
 
-extern int debug;
-
 struct amd64_frame {
   struct amd64_frame *f_frame;
   long f_retaddr;
@@ -55,8 +53,7 @@ scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd)
   char reg_name[15];
 
   kread_symbol(hdl, KSYM_ALLPROC, &p_addr, sizeof(p_addr));
-  if (debug > 0)
-    printf("allproc addr: %p\n", p_addr);
+  DEBUGSTR("allproc addr: %p\n", p_addr);
 
   while (p_addr != 0) {
     kread(hdl, p_addr, &p, sizeof(p));
@@ -67,9 +64,9 @@ scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd)
       kread(hdl, td.td_pcb, &pcb, sizeof(struct pcb));
 
       /* scan registers */
+      si->usi_flag = USCAN_REGISTER;
 #define scan_reg(r) \
-  strcpy(reg_name, "Register "); \
-  si->usi_name = strcat(reg_name, #r); \
+  si->usi_name = #r; \
   si->usi_data = pcb.pcb_##r; \
   (*upd)(si);
         scan_reg(r15);
@@ -90,7 +87,8 @@ scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd)
         scan_reg(dr7);
 
       // scan frames
-      si->usi_name = "Stack frame arguments";
+      si->usi_name = "kstack";
+      si->usi_flag = USCAN_KSTACK;
       f_addr = (struct amd64_frame*) pcb.pcb_rbp;
       while(1) {
         if (!f_addr)

@@ -41,8 +41,6 @@
 
 #define CRASHDIR "/var/crash"
 
-int debug;
-
 typedef enum {
   M_NONE,
   M_SCAN_SLABS,
@@ -177,7 +175,9 @@ main(int argc, char *argv[])
   int ch, usc_flags = 0, verbose = 0, dumpnr = -1;
   struct plist* lst;
 
+#ifdef DEBUG
   debug = 0;
+#endif
 
   while ((ch = getopt(argc, argv, "hvn:c:d:k:szb")) != -1) {
     switch (ch) {
@@ -209,7 +209,9 @@ main(int argc, char *argv[])
       break;
     case 'd':
       verbose = 1;
+#ifdef DEBUG
       debug = strtol(optarg, &s, 0);
+#endif
       break;
     case 'h':
     case '?':
@@ -267,7 +269,6 @@ main(int argc, char *argv[])
     break;
   case (M_DTRACE):
     lst = plist_from_dtrace(fd);
-    plist_print(lst);
     break;
   case (M_NONE):
   default:

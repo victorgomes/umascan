@@ -44,11 +44,9 @@
 #include <unistd.h>
 
 #include <fcntl.h>
-#include <libelf/gelf.h>
+#include <gelf.h>
 
 #include "umascan.h"
-
-extern int debug;
 
 /* machine dependent */
 void scan_kstacks(usc_hdl_t hdl, usc_info_t si, umascan_t upd);
@@ -211,12 +209,16 @@ scan_globals (usc_hdl_t hdl, usc_info_t si, umascan_t upd)
       warnx("section header \"%s\" not in kernel space", name);
       continue;
     }
+
+    si->usi_name = name;
+    si->usi_flag = USCAN_GLOBAL;
+    si->usi_iaddr = shdr.sh_addr;
+    si->usi_size = shdr.sh_size;
     
     data = malloc(shdr.sh_size);
     kread(hdl, (void*)shdr.sh_addr, data, shdr.sh_size);
     
     for(i = 0; i < shdr.sh_size; i+= sizeof(uintptr_t)) {
-      si->usi_name = name;
       si->usi_data = *(uintptr_t*)(data + i);
       (*upd)(si);
     }
@@ -263,7 +265,7 @@ scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc
       
       if (!upd)
         continue;
-
+ 
       for (j = 0; j < irsize; j += sizeof(uintptr_t)) {
         si->usi_data = *(uintptr_t*)(us_item + j);
         (*upd)(si);
@@ -283,7 +285,8 @@ scan_slab(usc_hdl_t hdl, struct uma_slab *usp, usc_info_t si, umascan_t upd, usc
 }
 
 static int
-scan_bucket(usc_hdl_t hdl, struct uma_bucket *ubp, struct uma_bucket *ub, usc_info_t si, umascan_t upd)
+scan_bucket(usc_hdl_t hdl, struct uma_bucket *ubp, struct uma_bucket *ub,
+            usc_info_t si, umascan_t upd)
 {
   int i;
   size_t j, ub_size, isize;
@@ -393,6 +396,7 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
 
     kread_string(hdl, uk.uk_name, uk_name, MEMTYPE_MAXNAME);
     si.usi_name = uk_name;
+    si.usi_flag = USCAN_SLAB;
     si.usi_size = uk.uk_size;
     
     // full/part/free slabs
@@ -408,6 +412,7 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
     // no point to continue if we are not scanning buckets
     if (!(hdl->usc_flags & USCAN_BUCKET))
       continue;
+    si.usi_flag = USCAN_BUCKET;
 
     // zones
     struct uma_zone *uzp;
@@ -422,7 +427,6 @@ umascan(usc_hdl_t hdl, umascan_t upd, void *arg) {
       assert (ukp == uz->uz_klink.kl_keg);
 
       kread_string(hdl, uz->uz_name, uz_name, MEMTYPE_MAXNAME);
-      si.usi_name = uz_name;
 
       // if zone is not secondary or it is the head of the list 
       // then the keg and zone names are the same

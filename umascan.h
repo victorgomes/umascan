@@ -41,9 +41,18 @@
 #define USCAN_BUCKET    0x2
 #define USCAN_KSTACK    0x4
 #define USCAN_GLOBAL    0x8
+#define USCAN_REGISTER  0x10
 
-#define USCAN_DEFAULT   0xD
-#define USCAN_ALL       0xF
+#define USCAN_DEFAULT   0x1D
+#define USCAN_ALL       0x1F
+
+#ifdef DEBUG
+int debug;
+#define DEBUGSTR(...) if (debug > 0) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUGSTR(...)
+#endif
+
 
 struct usc_hdl;
 typedef struct usc_hdl* usc_hdl_t;
@@ -74,7 +83,8 @@ struct plist;
 struct plist* plist_create(void);
 void plist_delete(struct plist *lst);
 int plist_in(uintptr_t addr, struct plist *lst);
-void plist_insert(uintptr_t addr, struct plist *lst);
+void plist_insert (struct plist *lst, uintptr_t addr,
+                   const char *name, int rc_offset, const char *rc_type);
 void plist_print(struct plist *lst);
 struct plist* plist_from_file(FILE *fd);
 struct plist* plist_from_dtrace(FILE *fd);

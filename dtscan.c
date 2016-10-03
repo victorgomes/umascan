@@ -30,17 +30,21 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <dtrace.h>
+#include <yaml.h>
 
 #include "umascan.h"
 
 static int sigintr;
 
+static const char *struct_name = NULL, *rc_name = NULL, *rc_type = NULL;
+static int rc_offset = -1;
+
 static int 
 chewrec (const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
 {
-  uint64_t *base;
   struct plist *lst;
   uintptr_t addr;
 
@@ -48,30 +52,14 @@ chewrec (const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
   if (rec == NULL)
     return DTRACE_CONSUME_NEXT;
 
-  base = (uint64_t*)data->dtpda_data;
+  addr = *(uintptr_t*)data->dtpda_data;
   lst = (struct plist *) arg;
-
-  /* First rec points to printf action and the second to the
-   * first argument of printf */
-  rec++;
-  addr = *(base + rec->dtrd_offset);
 
   /* If we are already know the pointer, just skip */
   if (plist_in(addr, lst))
     return DTRACE_CONSUME_NEXT;
 
-  plist_insert(addr, lst);
-
-  switch (data->dtpda_flow) {
-  case DTRACEFLOW_ENTRY:
-    printf("\tENTRY:");
-    break;
-  case DTRACEFLOW_RETURN:
-    printf("\tRETURN:n");
-    break;
-  case DTRACEFLOW_NONE:
-    break;
-  }
+  plist_insert(lst, addr, struct_name, rc_offset, rc_type);
 
   dtrace_probedesc_t *epd = data->dtpda_pdesc;
   printf("%s:%s:%s:%s", epd->dtpd_name, epd->dtpd_provider,
@@ -87,12 +75,192 @@ intr (int signo)
   sigintr = 1;
 }
 
+static char *
+concat (const char *s1, const char *s2)
+{
+  size_t len1, len2;
+  char *r;
+
+  len1 = strlen(s1);
+  len2 = strlen(s2);
+  r = malloc(len1+len2+1);
+  
+  memcpy(r, s1, len1);
+  memcpy(r+len1, s2, len2+1);
+  return r;
+}
+static const char *
+create_probe_str (const char *prov, const char *mod, const char *fun, const char *dir, int arg)
+{
+  char *str;
+  asprintf(&str, "%s:%s:%s:%s { printf(\"%%p\\n\", args[%d]); }\n",
+    prov ? prov : "", mod ? mod : "", fun ? fun : "", dir ? dir : "", arg);
+  return str;
+}
+
+static char*
+parse_dtscript (FILE *fd)
+{
+  yaml_parser_t parser;
+  yaml_event_t e;
+  const char *tok;
+  char * dtscript = "";
+  const char *prov, *mod, *fun, *dir;
+  int arg;
+
+  enum {
+    PARSE_TOP,
+    PARSE_NAME,
+    PARSE_RC,
+    PARSE_RC_NAME,
+    PARSE_RC_OFFSET,
+    PARSE_RC_TYPE,
+    PARSE_PROBES,
+    PARSE_PROVIDER,
+    PARSE_MODULE,
+    PARSE_FUNCTION,
+    PARSE_DIRECTION,
+    PARSE_ARG
+  } flag = PARSE_TOP;
+
+  if (!yaml_parser_initialize(&parser))
+    errx(-1, "failed to initialize yaml parser\n");
+
+  yaml_parser_set_input_file(&parser, fd);
+
+  do {
+    if (!yaml_parser_parse(&parser, &e))
+      errx(-1, "parse error: %d\n", parser.error);
+
+    switch (e.type) {
+    case YAML_SEQUENCE_END_EVENT:
+      switch (flag) {
+      case PARSE_TOP:
+        break;
+      case PARSE_PROBES:
+        flag = PARSE_TOP;
+        break;
+      default:
+        errx(-1, "wrong end of sequence");
+        break;
+      }
+      break;
+    case YAML_MAPPING_END_EVENT:
+      switch (flag) {
+      case PARSE_TOP:
+        break;
+      case PARSE_RC:
+        flag = PARSE_TOP;
+        break;
+      case PARSE_PROBES:
+        dtscript = concat (dtscript, create_probe_str(prov, mod, fun, dir, arg));
+        break;
+      default:
+        errx(-1, "wrong end of mapping");
+        break;
+      }
+      break;
+    case YAML_SCALAR_EVENT:
+      tok = (char*) e.data.scalar.value;
+      switch (flag) {
+      case PARSE_TOP:
+        if (strcmp(tok, "name") == 0)
+          flag = PARSE_NAME;
+        else if (strcmp(tok, "ref_field") == 0)
+          flag = PARSE_RC;
+        else if (strcmp(tok, "probes") == 0)
+          flag = PARSE_PROBES;
+        else
+          errx(-1, "parsing: wrong token in top");
+        break;
+      case PARSE_NAME:
+        struct_name = strdup(tok);
+        flag = PARSE_TOP;
+        break;
+      case PARSE_RC:
+        if (strcmp(tok, "name") == 0)
+          flag = PARSE_RC_NAME;
+        else if (strcmp(tok, "offset") == 0)
+          flag = PARSE_RC_OFFSET;
+        else if (strcmp(tok, "type") == 0)
+          flag = PARSE_RC_TYPE;
+        else
+          errx(-1, "parsing: wrong token in ref field");
+        break;
+      case PARSE_RC_NAME:
+        rc_name = strdup(tok);
+        flag = PARSE_RC;
+        break;
+      case PARSE_RC_OFFSET:
+        rc_offset = atoi(tok);
+        flag = PARSE_RC;
+        break;
+      case PARSE_RC_TYPE:
+        rc_type = strdup(tok);
+        flag = PARSE_RC;
+        break;
+      case PARSE_PROBES:
+        if (strcmp(tok, "provider") == 0)
+          flag = PARSE_PROVIDER;
+        else if (strcmp(tok, "module") == 0)
+          flag = PARSE_MODULE;
+        else if (strcmp(tok, "function") == 0)
+          flag = PARSE_FUNCTION;
+        else if (strcmp(tok, "direction") == 0)
+          flag = PARSE_DIRECTION;
+        else if (strcmp(tok, "arg") == 0)
+          flag = PARSE_ARG;
+        else
+          errx(-1, "parsing: wrong token in probes");
+        break;
+      case PARSE_PROVIDER:
+        prov = strdup(tok);
+        flag = PARSE_PROBES;
+        break;
+      case PARSE_MODULE:
+        mod = strdup(tok);
+        flag = PARSE_PROBES;
+        break;
+      case PARSE_FUNCTION:
+        fun = strdup(tok);
+        flag = PARSE_PROBES;
+        break;
+      case PARSE_DIRECTION:
+        dir = strdup(tok);
+        flag = PARSE_PROBES;
+        break;
+      case PARSE_ARG:
+        arg = atoi(tok);
+        flag = PARSE_PROBES;
+        break;
+      default:
+        errx(-1, "parsing: unexpected token: %s", tok);
+        break;
+      }
+    default:
+      break;
+    }
+
+    if (e.type != YAML_STREAM_END_EVENT)
+      yaml_event_delete(&e);
+
+  } while (e.type != YAML_STREAM_END_EVENT);
+  yaml_event_delete(&e);
+  yaml_parser_delete(&parser);
+  fclose(fd);
+  
+  DEBUGSTR("dtrace script:\n\n%s", dtscript);
+
+  return dtscript;
+}
+
 struct plist*
 plist_from_dtrace (FILE *fd)
 {
   struct plist *lst;
   struct sigaction act;
   int errno, done;
+  char* dtscript;
 
   dtrace_hdl_t* dtp;
 
@@ -105,10 +273,12 @@ plist_from_dtrace (FILE *fd)
 
   if (fd == NULL)
     err(-1, "failed to open dtrace script..\n");
-  dtrace_prog_t* prog = dtrace_program_fcompile(dtp, fd, 0, 0, NULL);
+
+  dtscript = parse_dtscript(fd);
+  dtrace_prog_t* prog = dtrace_program_strcompile(dtp, dtscript, DTRACE_PROBESPEC_NAME, 0, 0, NULL);
   if (prog == NULL)
     err(-1, "failed to compile dtrace program\n");
-  fclose(fd);
+  free(dtscript);
   
   dtrace_proginfo_t info;
   if (dtrace_program_exec(dtp, prog, &info) == -1)
@@ -122,7 +292,7 @@ plist_from_dtrace (FILE *fd)
 
   if (dtrace_go(dtp) != 0)
     err(-1, "could not start instrumentation\n");
-  printf("dtrace started... Press CTRL-C to stop.\n");
+  printf("dtrace started... press CTRL-C to stop.\n");
 
   lst = plist_create();
 
