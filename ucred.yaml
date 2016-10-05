@@ -1,27 +1,23 @@
-name: ucred
+name: vm_object
 
 ref_field:
-  name: cr_ref
-  offset: 0
-  type: uint32
+  name: ref_count
+  offset: 116
+  type: int32
 
 probes:
-  - provider: fbt
-    module: kernel
-    function: crhold
-    direction: entry 
+  - function: vm_object_allocate
+    direction: return
+    arg: 1
+
+  - function: vm_object_collapse
+    direction: entry
     arg: 0
 
-  - provider: fbt
-    function: crget
-    direction: return
-    arg: 1
+  - function: vm_object_reference
+    direction: entry
+    arg: 0
 
-  - provider: fbt
-    function: crdup
-    direction: return
-    arg: 1
-
-  - function: crfree
+  - function: vm_object_destroy
     direction: entry
     arg: 0
