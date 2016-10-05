@@ -1,0 +1,27 @@
+name: ucred
+
+ref_field:
+  name: cr_ref
+  offset: 0
+  type: uint32
+
+probes:
+  - provider: fbt
+    module: kernel
+    function: crhold
+    direction: entry 
+    arg: 0
+
+  - provider: fbt
+    function: crget
+    direction: return
+    arg: 1
+
+  - provider: fbt
+    function: crdup
+    direction: return
+    arg: 1
+
+  - function: crfree
+    direction: entry
+    arg: 0

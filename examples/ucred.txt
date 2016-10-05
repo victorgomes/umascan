@@ -1,0 +1,205 @@
+umascan: return address of frame is not in kernel.
+dtrace started... press CTRL-C to stop.
+entry:fbt:kernel:crhold	fffff80002aa2b00
+entry:fbt:kernel:crhold	fffff80023981800
+entry:fbt:kernel:crfree	fffff80002a80e00
+entry:fbt:kernel:crfree	fffff80002ec2b00
+entry:fbt:kernel:crfree	fffff80023981900
+entry:fbt:kernel:crfree	fffff80023981a00
+entry:fbt:kernel:crfree	fffff800029e5600
+return:fbt:kernel:crget	fffff800029e4d00
+entry:fbt:kernel:crhold	fffff80002ec3d00
+return:fbt:kernel:crget	fffff80023981600
+return:fbt:kernel:crget	fffff80023981500
+return:fbt:kernel:crget	fffff800029e4600
+return:fbt:kernel:crget	fffff80023981300
+return:fbt:kernel:crget	fffff80002aa2100
+0xfffff80002aa2100:
+	struct name: ucred
+	zone name: 256
+	ref count: 598417920
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		128: 5
+		512: 2
+0xfffff80023981300:
+	struct name: ucred
+	zone name: 256
+	ref count: 597169408
+	total count: 1
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+0xfffff800029e4600:
+	struct name: ucred
+	zone name: 256
+	ref count: 0
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		1024: 1
+0xfffff80023981500:
+	struct name: ucred
+	zone name: 256
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		128: 1
+		256: 1
+		512: 1
+0xfffff80023981600:
+	struct name: ucred
+	zone name: 256
+	ref count: 15
+	total count: 40
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 10
+		MAP ENTRY: 11
+		1024: 2
+		Files: 7
+		PROC: 1
+		THREAD: 6
+		socket: 2
+0xfffff80002ec3d00:
+	struct name: ucred
+	zone name: 256
+	ref count: 46
+	total count: 46
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 14
+		MAP ENTRY: 26
+		256: 1
+		512: 1
+		Files: 2
+		PROC: 1
+		THREAD: 1
+0xfffff800029e4d00:
+	struct name: ucred
+	zone name: 256
+	ref count: 0
+	total count: 1
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+0xfffff800029e5600:
+	struct name: ucred
+	zone name: 256
+	ref count: 205
+	total count: 258
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 123
+		MAP ENTRY: 121
+		128: 1
+		Files: 7
+		PROC: 1
+		THREAD: 2
+		socket: 3
+0xfffff80023981a00:
+	struct name: ucred
+	zone name: 256
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		1024: 1
+0xfffff80023981900:
+	struct name: ucred
+	zone name: 256
+	ref count: 2
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		512: 1
+		1024: 1
+		Files: 1
+		THREAD: 1
+		socket: 1
+0xfffff80002ec2b00:
+	struct name: ucred
+	zone name: 256
+	ref count: 8
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		Files: 4
+		PROC: 1
+		THREAD: 2
+0xfffff80002a80e00:
+	struct name: ucred
+	zone name: 256
+	ref count: 416
+	total count: 423
+	globals: 0
+	registers: 0
+	kstack: 1
+	slabs:
+		VM OBJECT: 210
+		MAP ENTRY: 176
+		64: 2
+		Files: 13
+		PROC: 3
+		THREAD: 7
+		socket: 10
+		udp_inpcb: 1
+0xfffff80023981800:
+	struct name: ucred
+	zone name: 256
+	ref count: 598419968
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		256: 1
+		512: 1
+		Files: 1
+		THREAD: 3
+		VNODE: 1
+0xfffff80002aa2b00:
+	struct name: ucred
+	zone name: 256
+	ref count: 48
+	total count: 58
+	globals: 0
+	registers: 0
+	kstack: 1
+	slabs:
+		VM OBJECT: 33
+		MAP ENTRY: 7
+		Files: 10
+		PROC: 2
+		THREAD: 5
