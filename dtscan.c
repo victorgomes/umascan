@@ -56,7 +56,7 @@ chewrec (const dtrace_probedata_t *data, const dtrace_recdesc_t *rec, void *arg)
   lst = (struct plist *) arg;
 
   /* If we are already know the pointer, just skip */
-  if (plist_in(addr, lst))
+  if (plist_in(addr, lst) || addr == 0)
     return DTRACE_CONSUME_NEXT;
 
   plist_insert(lst, addr, struct_name, rc_offset, rc_type);
@@ -105,7 +105,7 @@ parse_dtscript (FILE *fd)
   yaml_event_t e;
   const char *tok;
   char * dtscript = "";
-  const char *prov, *mod, *fun, *dir;
+  const char *prov = NULL, *mod = NULL, *fun = NULL, *dir = NULL;
   int arg;
 
   enum {
@@ -154,6 +154,7 @@ parse_dtscript (FILE *fd)
         break;
       case PARSE_PROBES:
         dtscript = concat (dtscript, create_probe_str(prov, mod, fun, dir, arg));
+        prov = mod = fun = dir = NULL;
         break;
       default:
         errx(-1, "wrong end of mapping");

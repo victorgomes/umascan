@@ -1,55 +1,307 @@
-umascan: return address of frame is not in kernel.
 dtrace started... press CTRL-C to stop.
-entry:fbt:kernel:crhold	fffff80002aa2b00
-entry:fbt:kernel:crhold	fffff80023981800
-entry:fbt:kernel:crfree	fffff80002a80e00
-entry:fbt:kernel:crfree	fffff80002ec2b00
-entry:fbt:kernel:crfree	fffff80023981900
-entry:fbt:kernel:crfree	fffff80023981a00
-entry:fbt:kernel:crfree	fffff800029e5600
-return:fbt:kernel:crget	fffff800029e4d00
-entry:fbt:kernel:crhold	fffff80002ec3d00
-return:fbt:kernel:crget	fffff80023981600
-return:fbt:kernel:crget	fffff80023981500
-return:fbt:kernel:crget	fffff800029e4600
-return:fbt:kernel:crget	fffff80023981300
-return:fbt:kernel:crget	fffff80002aa2100
-0xfffff80002aa2100:
-	struct name: ucred
-	zone name: 256
-	ref count: 598417920
+entry:fbt:kernel:vm_object_collapse	fffff80002e98c00
+entry:fbt:kernel:vm_object_collapse	fffff80010711b00
+entry:fbt:kernel:vm_object_collapse	fffff80002f1e300
+entry:fbt:kernel:vm_object_collapse	fffff80010674a00
+entry:fbt:kernel:vm_object_collapse	fffff800106a3900
+entry:fbt:kernel:vm_object_reference	fffff80010615d00
+entry:fbt:kernel:vm_object_reference	fffff80010615c00
+entry:fbt:kernel:vm_object_reference	fffff80010615a00
+entry:fbt:kernel:vm_object_reference	fffff80010615900
+entry:fbt:kernel:vm_object_reference	fffff80010615800
+entry:fbt:kernel:vm_object_reference	fffff80010615700
+entry:fbt:kernel:vm_object_reference	fffff80010615300
+entry:fbt:kernel:vm_object_reference	fffff80010615000
+entry:fbt:kernel:vm_object_collapse	fffff80002fe2900
+entry:fbt:kernel:vm_object_collapse	fffff80002fe3d00
+entry:fbt:kernel:vm_object_collapse	fffff80010021500
+entry:fbt:kernel:vm_object_collapse	fffff80002f65400
+entry:fbt:kernel:vm_object_collapse	fffff80002fe2b00
+entry:fbt:kernel:vm_object_collapse	fffff80010021800
+entry:fbt:kernel:vm_object_collapse	fffff80010597100
+entry:fbt:kernel:vm_object_collapse	fffff80010674d00
+entry:fbt:kernel:vm_object_collapse	fffff80010597000
+entry:fbt:kernel:vm_object_collapse	fffff80010674c00
+entry:fbt:kernel:vm_object_collapse	fffff80010674900
+entry:fbt:kernel:vm_object_collapse	fffff80010674800
+entry:fbt:kernel:vm_object_collapse	fffff800105fee00
+entry:fbt:kernel:vm_object_collapse	fffff80010510900
+entry:fbt:kernel:vm_object_collapse	fffff800105fed00
+entry:fbt:kernel:vm_object_collapse	fffff80010534d00
+entry:fbt:kernel:vm_object_collapse	fffff800105fec00
+entry:fbt:kernel:vm_object_collapse	fffff80010534b00
+entry:fbt:kernel:vm_object_collapse	fffff800105feb00
+entry:fbt:kernel:vm_object_collapse	fffff80010534900
+entry:fbt:kernel:vm_object_collapse	fffff80010650c00
+entry:fbt:kernel:vm_object_collapse	fffff800105fe900
+entry:fbt:kernel:vm_object_collapse	fffff80010650b00
+entry:fbt:kernel:vm_object_collapse	fffff800105fe700
+entry:fbt:kernel:vm_object_collapse	fffff80010650a00
+entry:fbt:kernel:vm_object_collapse	fffff800105fe400
+entry:fbt:kernel:vm_object_collapse	fffff80010650900
+entry:fbt:kernel:vm_object_collapse	fffff800105fe200
+entry:fbt:kernel:vm_object_collapse	fffff800105fe100
+entry:fbt:kernel:vm_object_collapse	fffff8001064ec00
+entry:fbt:kernel:vm_object_collapse	fffff800105fe000
+entry:fbt:kernel:vm_object_collapse	fffff80002ec5300
+entry:fbt:kernel:vm_object_collapse	fffff800106e2e00
+entry:fbt:kernel:vm_object_collapse	fffff800105fdc00
+entry:fbt:kernel:vm_object_collapse	fffff800105fdb00
+entry:fbt:kernel:vm_object_collapse	fffff800105fd900
+entry:fbt:kernel:vm_object_collapse	fffff800105fd800
+entry:fbt:kernel:vm_object_collapse	fffff800105fd600
+entry:fbt:kernel:vm_object_collapse	fffff800105fd500
+entry:fbt:kernel:vm_object_collapse	fffff800105fd300
+entry:fbt:kernel:vm_object_collapse	fffff800105fd200
+entry:fbt:kernel:vm_object_collapse	fffff800105fd100
+entry:fbt:kernel:vm_object_collapse	fffff800105fd000
+entry:fbt:kernel:vm_object_collapse	fffff800105fcd00
+entry:fbt:kernel:vm_object_collapse	fffff80010020e00
+entry:fbt:kernel:vm_object_collapse	fffff800105fcb00
+entry:fbt:kernel:vm_object_collapse	fffff800239ab700
+entry:fbt:kernel:vm_object_collapse	fffff800105fc800
+entry:fbt:kernel:vm_object_collapse	fffff800105fc700
+entry:fbt:kernel:vm_object_collapse	fffff800105fc500
+entry:fbt:kernel:vm_object_collapse	fffff800239a8d00
+entry:fbt:kernel:vm_object_collapse	fffff800105fc300
+entry:fbt:kernel:vm_object_collapse	fffff80010614800
+entry:fbt:kernel:vm_object_collapse	fffff800239a8200
+entry:fbt:kernel:vm_object_collapse	fffff800105fc100
+entry:fbt:kernel:vm_object_collapse	fffff800105fc000
+entry:fbt:kernel:vm_object_collapse	fffff800105fbe00
+entry:fbt:kernel:vm_object_collapse	fffff80010650700
+entry:fbt:kernel:vm_object_collapse	fffff800105fbd00
+entry:fbt:kernel:vm_object_collapse	fffff80010650600
+entry:fbt:kernel:vm_object_collapse	fffff800105fbb00
+entry:fbt:kernel:vm_object_collapse	fffff800105fba00
+entry:fbt:kernel:vm_object_collapse	fffff800105fb800
+entry:fbt:kernel:vm_object_collapse	fffff80010650500
+entry:fbt:kernel:vm_object_collapse	fffff800105fb600
+entry:fbt:kernel:vm_object_collapse	fffff80010650400
+entry:fbt:kernel:vm_object_collapse	fffff800105fb500
+entry:fbt:kernel:vm_object_collapse	fffff800105fb400
+entry:fbt:kernel:vm_object_collapse	fffff800105fb200
+entry:fbt:kernel:vm_object_collapse	fffff800105fb100
+entry:fbt:kernel:vm_object_collapse	fffff800105fb000
+entry:fbt:kernel:vm_object_collapse	fffff80010650300
+entry:fbt:kernel:vm_object_collapse	fffff80010675d00
+entry:fbt:kernel:vm_object_collapse	fffff80010675c00
+entry:fbt:kernel:vm_object_collapse	fffff80010675a00
+entry:fbt:kernel:vm_object_collapse	fffff80010650200
+entry:fbt:kernel:vm_object_collapse	fffff8001059aa00
+entry:fbt:kernel:vm_object_collapse	fffff8001059a900
+entry:fbt:kernel:vm_object_collapse	fffff8001059a800
+entry:fbt:kernel:vm_object_collapse	fffff8001059a700
+entry:fbt:kernel:vm_object_collapse	fffff8001059a600
+entry:fbt:kernel:vm_object_collapse	fffff8001059a500
+entry:fbt:kernel:vm_object_collapse	fffff8001059a400
+entry:fbt:kernel:vm_object_collapse	fffff80010650100
+entry:fbt:kernel:vm_object_collapse	fffff8001059a300
+entry:fbt:kernel:vm_object_collapse	fffff8001059a200
+entry:fbt:kernel:vm_object_collapse	fffff8001059a000
+entry:fbt:kernel:vm_object_collapse	fffff80010599e00
+entry:fbt:kernel:vm_object_collapse	fffff80010599c00
+entry:fbt:kernel:vm_object_collapse	fffff80010650000
+entry:fbt:kernel:vm_object_collapse	fffff80010599a00
+entry:fbt:kernel:vm_object_collapse	fffff80010599900
+entry:fbt:kernel:vm_object_collapse	fffff80010599800
+entry:fbt:kernel:vm_object_collapse	fffff80010599700
+entry:fbt:kernel:vm_object_collapse	fffff80010599500
+entry:fbt:kernel:vm_object_collapse	fffff80010599400
+entry:fbt:kernel:vm_object_collapse	fffff80010599300
+entry:fbt:kernel:vm_object_collapse	fffff8001064fe00
+entry:fbt:kernel:vm_object_collapse	fffff80010599200
+entry:fbt:kernel:vm_object_collapse	fffff8001064fd00
+entry:fbt:kernel:vm_object_collapse	fffff80010599100
+entry:fbt:kernel:vm_object_collapse	fffff8001064fc00
+entry:fbt:kernel:vm_object_collapse	fffff80010599000
+entry:fbt:kernel:vm_object_collapse	fffff8001064fb00
+entry:fbt:kernel:vm_object_collapse	fffff80010598d00
+entry:fbt:kernel:vm_object_collapse	fffff8001064fa00
+entry:fbt:kernel:vm_object_collapse	fffff80010598b00
+entry:fbt:kernel:vm_object_collapse	fffff8001064f900
+entry:fbt:kernel:vm_object_collapse	fffff80010598900
+entry:fbt:kernel:vm_object_collapse	fffff80010598800
+entry:fbt:kernel:vm_object_collapse	fffff80010598700
+entry:fbt:kernel:vm_object_collapse	fffff80010598600
+entry:fbt:kernel:vm_object_collapse	fffff80010598500
+entry:fbt:kernel:vm_object_collapse	fffff8001064f800
+entry:fbt:kernel:vm_object_collapse	fffff80010598400
+entry:fbt:kernel:vm_object_collapse	fffff80010598300
+entry:fbt:kernel:vm_object_collapse	fffff80010598200
+entry:fbt:kernel:vm_object_collapse	fffff80010598100
+entry:fbt:kernel:vm_object_collapse	fffff80010598000
+entry:fbt:kernel:vm_object_collapse	fffff80010597e00
+entry:fbt:kernel:vm_object_collapse	fffff80010597d00
+entry:fbt:kernel:vm_object_collapse	fffff8001064f700
+entry:fbt:kernel:vm_object_collapse	fffff80010597c00
+entry:fbt:kernel:vm_object_collapse	fffff80010597b00
+entry:fbt:kernel:vm_object_collapse	fffff80010597900
+entry:fbt:kernel:vm_object_collapse	fffff80010597800
+entry:fbt:kernel:vm_object_collapse	fffff80010597700
+entry:fbt:kernel:vm_object_collapse	fffff80010597600
+entry:fbt:kernel:vm_object_collapse	fffff8001064f300
+entry:fbt:kernel:vm_object_collapse	fffff80010597500
+entry:fbt:kernel:vm_object_collapse	fffff80010597400
+entry:fbt:kernel:vm_object_collapse	fffff80010597300
+entry:fbt:kernel:vm_object_collapse	fffff80010597200
+entry:fbt:kernel:vm_object_collapse	fffff80023acfd00
+entry:fbt:kernel:vm_object_collapse	fffff80023a7ec00
+entry:fbt:kernel:vm_object_reference	fffff80002527800
+entry:fbt:kernel:vm_object_collapse	fffff80023a7e500
+entry:fbt:kernel:vm_object_collapse	fffff800106a4500
+entry:fbt:kernel:vm_object_collapse	fffff80010767b00
+entry:fbt:kernel:vm_object_collapse	fffff80010711400
+entry:fbt:kernel:vm_object_collapse	fffff80023ace400
+entry:fbt:kernel:vm_object_collapse	fffff800238bd300
+entry:fbt:kernel:vm_object_collapse	fffff80023a18600
+entry:fbt:kernel:vm_object_collapse	fffff80010683400
+entry:fbt:kernel:vm_object_collapse	fffff80023acd700
+entry:fbt:kernel:vm_object_collapse	fffff800239ab600
+entry:fbt:kernel:vm_object_collapse	fffff800238bb300
+entry:fbt:kernel:vm_object_collapse	fffff80010711800
+entry:fbt:kernel:vm_object_collapse	fffff800238bb600
+entry:fbt:kernel:vm_object_collapse	fffff800239a8b00
+entry:fbt:kernel:vm_object_collapse	fffff80023a9a300
+entry:fbt:kernel:vm_object_collapse	fffff80023acf300
+entry:fbt:kernel:vm_object_collapse	fffff80002ec5200
+entry:fbt:kernel:vm_object_collapse	fffff80023a7fe00
+entry:fbt:kernel:vm_object_collapse	fffff80002e98000
+entry:fbt:kernel:vm_object_collapse	fffff80023a7f500
+entry:fbt:kernel:vm_object_collapse	fffff80002f1fd00
+entry:fbt:kernel:vm_object_collapse	fffff80023a9cd00
+entry:fbt:kernel:vm_object_collapse	fffff8001077ac00
+entry:fbt:kernel:vm_object_collapse	fffff800239f6000
+entry:fbt:kernel:vm_object_collapse	fffff80010683100
+entry:fbt:kernel:vm_object_collapse	fffff800239a9800
+entry:fbt:kernel:vm_object_collapse	fffff800238bb100
+entry:fbt:kernel:vm_object_collapse	fffff80023a7ea00
+entry:fbt:kernel:vm_object_collapse	fffff800106a1400
+entry:fbt:kernel:vm_object_collapse	fffff80010021100
+entry:fbt:kernel:vm_object_collapse	fffff80023a9cc00
+entry:fbt:kernel:vm_object_collapse	fffff800238ba700
+entry:fbt:kernel:vm_object_collapse	fffff800238bd800
+entry:fbt:kernel:vm_object_collapse	fffff80002ec5d00
+entry:fbt:kernel:vm_object_collapse	fffff80023acfb00
+entry:fbt:kernel:vm_object_collapse	fffff80002f1e000
+entry:fbt:kernel:vm_object_collapse	fffff800106a4e00
+entry:fbt:kernel:vm_object_collapse	fffff800106a0900
+entry:fbt:kernel:vm_object_collapse	fffff80023a19700
+entry:fbt:kernel:vm_object_collapse	fffff80010711300
+entry:fbt:kernel:vm_object_collapse	fffff800239a8900
+entry:fbt:kernel:vm_object_collapse	fffff80010724700
+entry:fbt:kernel:vm_object_collapse	fffff80023a7fc00
+entry:fbt:kernel:vm_object_collapse	fffff80023acf500
+entry:fbt:kernel:vm_object_collapse	fffff80023a9a400
+entry:fbt:kernel:vm_object_collapse	fffff80002f1fb00
+entry:fbt:kernel:vm_object_collapse	fffff80023a7d800
+entry:fbt:kernel:vm_object_collapse	fffff800239f7500
+entry:fbt:kernel:vm_object_collapse	fffff80010767200
+entry:fbt:kernel:vm_object_collapse	fffff800239a9600
+entry:fbt:kernel:vm_object_collapse	fffff80023a99500
+entry:fbt:kernel:vm_object_collapse	fffff80023a7e100
+entry:fbt:kernel:vm_object_collapse	fffff80023a20c00
+entry:fbt:kernel:vm_object_collapse	fffff80002f1e700
+entry:fbt:kernel:vm_object_collapse	fffff80002f1f100
+entry:fbt:kernel:vm_object_collapse	fffff800239a9b00
+entry:fbt:kernel:vm_object_collapse	fffff80002e98400
+entry:fbt:kernel:vm_object_collapse	fffff800238bc000
+entry:fbt:kernel:vm_object_collapse	fffff80002ec5500
+entry:fbt:kernel:vm_object_collapse	fffff80010767300
+entry:fbt:kernel:vm_object_collapse	fffff80023acec00
+entry:fbt:kernel:vm_object_collapse	fffff800106a3b00
+entry:fbt:kernel:vm_object_collapse	fffff80002e98100
+entry:fbt:kernel:vm_object_collapse	fffff80002e98200
+entry:fbt:kernel:vm_object_collapse	fffff80023acea00
+entry:fbt:kernel:vm_object_collapse	fffff80023a7d700
+return:fbt:kernel:vm_object_allocate	fffff800239f6a00
+return:fbt:kernel:vm_object_allocate	fffff800239a9000
+entry:fbt:kernel:vm_object_reference	fffff80002f7ee00
+entry:fbt:kernel:vm_object_collapse	fffff80010711200
+entry:fbt:kernel:vm_object_collapse	fffff80023acf200
+entry:fbt:kernel:vm_object_collapse	fffff80002ec5600
+entry:fbt:kernel:vm_object_collapse	fffff80002ac2800
+entry:fbt:kernel:vm_object_collapse	fffff80002d51800
+entry:fbt:kernel:vm_object_collapse	fffff800238bd100
+entry:fbt:kernel:vm_object_collapse	fffff800106a4b00
+entry:fbt:kernel:vm_object_collapse	fffff80023a7fa00
+entry:fbt:kernel:vm_object_reference	fffff80002a50200
+return:fbt:kernel:vm_object_allocate	fffff800239ab500
+return:fbt:kernel:vm_object_allocate	fffff80002f1e900
+return:fbt:kernel:vm_object_allocate	fffff80023a9a000
+entry:fbt:kernel:vm_object_collapse	fffff80023a19200
+entry:fbt:kernel:vm_object_collapse	fffff80010683200
+entry:fbt:kernel:vm_object_collapse	fffff800238bb800
+entry:fbt:kernel:vm_object_collapse	fffff800239abd00
+entry:fbt:kernel:vm_object_collapse	fffff80010614400
+entry:fbt:kernel:vm_object_collapse	fffff80010614300
+entry:fbt:kernel:vm_object_collapse	fffff80010021000
+entry:fbt:kernel:vm_object_reference	fffff80002a4fc00
+entry:fbt:kernel:vm_object_collapse	fffff800238bac00
+entry:fbt:kernel:vm_object_collapse	fffff800239abb00
+entry:fbt:kernel:vm_object_collapse	fffff800239f7c00
+entry:fbt:kernel:vm_object_collapse	fffff80023a7e600
+entry:fbt:kernel:vm_object_collapse	fffff80023ace500
+entry:fbt:kernel:vm_object_reference	fffff800105fc400
+entry:fbt:kernel:vm_object_reference	fffff80010613e00
+entry:fbt:kernel:vm_object_reference	fffff80010020300
+return:fbt:kernel:vm_object_allocate	fffff80023a7e300
+return:fbt:kernel:vm_object_allocate	fffff80002e98b00
+entry:fbt:kernel:vm_object_reference	fffff80002d08300
+entry:fbt:kernel:vm_object_collapse	fffff80023a9ce00
+entry:fbt:kernel:vm_object_collapse	fffff80010711500
+entry:fbt:kernel:vm_object_collapse	fffff80010711700
+entry:fbt:kernel:vm_object_collapse	fffff800238bd000
+entry:fbt:kernel:vm_object_collapse	fffff80002f1f000
+entry:fbt:kernel:vm_object_collapse	fffff800239f7300
+return:fbt:kernel:vm_object_allocate	fffff80023acdb00
+return:fbt:kernel:vm_object_allocate	fffff80023a7d200
+return:fbt:kernel:vm_object_allocate	fffff80002f1f200
+entry:fbt:kernel:vm_object_reference	fffff80002a2c200
+entry:fbt:kernel:vm_object_collapse	fffff80023a9ac00
+entry:fbt:kernel:vm_object_collapse	fffff80023ad0100
+entry:fbt:kernel:vm_object_collapse	fffff80023a18300
+entry:fbt:kernel:vm_object_collapse	fffff80002f1ec00
+entry:fbt:kernel:vm_object_collapse	fffff80002ad5400
+0xfffff80002ad5400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
 	total count: 8
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-		128: 5
-		512: 2
-0xfffff80023981300:
-	struct name: ucred
-	zone name: 256
-	ref count: 597169408
-	total count: 1
-	globals: 0
-	registers: 0
-	kstack: 0
-	slabs:
-		64 Bucket: 1
-0xfffff800029e4600:
-	struct name: ucred
-	zone name: 256
+		VM OBJECT: 1
+		MAP ENTRY: 6
+0xfffff80002f1ec00:
+	struct name: vm_object
+	zone name: VM OBJECT
 	ref count: 0
-	total count: 2
+	total count: 5
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-		1024: 1
-0xfffff80023981500:
-	struct name: ucred
-	zone name: 256
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80023a18300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80023ad0100:
+	struct name: vm_object
+	zone name: VM OBJECT
 	ref count: 0
 	total count: 4
 	globals: 0
@@ -57,149 +309,2975 @@ return:fbt:kernel:crget	fffff80002aa2100
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-		128: 1
-		256: 1
-		512: 1
-0xfffff80023981600:
-	struct name: ucred
-	zone name: 256
-	ref count: 15
-	total count: 40
-	globals: 0
-	registers: 0
-	kstack: 0
-	slabs:
-		64 Bucket: 1
-		VM OBJECT: 10
-		MAP ENTRY: 11
-		1024: 2
-		Files: 7
-		PROC: 1
-		THREAD: 6
-		socket: 2
-0xfffff80002ec3d00:
-	struct name: ucred
-	zone name: 256
-	ref count: 46
-	total count: 46
-	globals: 0
-	registers: 0
-	kstack: 0
-	slabs:
-		VM OBJECT: 14
-		MAP ENTRY: 26
-		256: 1
-		512: 1
-		Files: 2
-		PROC: 1
-		THREAD: 1
-0xfffff800029e4d00:
-	struct name: ucred
-	zone name: 256
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80023a9ac00:
+	struct name: vm_object
+	zone name: VM OBJECT
 	ref count: 0
-	total count: 1
+	total count: 4
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-0xfffff800029e5600:
-	struct name: ucred
-	zone name: 256
-	ref count: 205
-	total count: 258
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80002a2c200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
-		VM OBJECT: 123
-		MAP ENTRY: 121
-		128: 1
-		Files: 7
-		PROC: 1
-		THREAD: 2
-		socket: 3
-0xfffff80023981a00:
-	struct name: ucred
-	zone name: 256
-	ref count: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+		VNODE: 1
+0xfffff80002f1f200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
 	total count: 2
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-		1024: 1
-0xfffff80023981900:
-	struct name: ucred
-	zone name: 256
-	ref count: 2
-	total count: 5
-	globals: 0
-	registers: 0
-	kstack: 0
-	slabs:
-		512: 1
-		1024: 1
-		Files: 1
-		THREAD: 1
-		socket: 1
-0xfffff80002ec2b00:
-	struct name: ucred
-	zone name: 256
-	ref count: 8
-	total count: 8
-	globals: 0
-	registers: 0
-	kstack: 0
-	slabs:
 		VM OBJECT: 1
-		Files: 4
-		PROC: 1
-		THREAD: 2
-0xfffff80002a80e00:
-	struct name: ucred
-	zone name: 256
-	ref count: 416
-	total count: 423
-	globals: 0
-	registers: 0
-	kstack: 1
-	slabs:
-		VM OBJECT: 210
-		MAP ENTRY: 176
-		64: 2
-		Files: 13
-		PROC: 3
-		THREAD: 7
-		socket: 10
-		udp_inpcb: 1
-0xfffff80023981800:
-	struct name: ucred
-	zone name: 256
-	ref count: 598419968
-	total count: 8
+0xfffff80023a7d200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
 	globals: 0
 	registers: 0
 	kstack: 0
 	slabs:
 		64 Bucket: 1
-		256: 1
-		512: 1
-		Files: 1
-		THREAD: 3
-		VNODE: 1
-0xfffff80002aa2b00:
-	struct name: ucred
-	zone name: 256
-	ref count: 48
-	total count: 58
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023acdb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
 	globals: 0
 	registers: 0
-	kstack: 1
+	kstack: 0
 	slabs:
-		VM OBJECT: 33
-		MAP ENTRY: 7
-		Files: 10
-		PROC: 2
-		THREAD: 5
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff800239f7300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80002f1f000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		VMSPACE: 1
+0xfffff800238bd000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+0xfffff80010711700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010711500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+0xfffff80023a9ce00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+0xfffff80002d08300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+		VNODE: 1
+0xfffff80002e98b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023a7e300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010020300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+		VNODE: 1
+0xfffff80010613e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 2
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 3
+		VNODE: 1
+0xfffff800105fc400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		VNODE: 1
+0xfffff80023ace500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80023a7e600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff800239f7c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 1
+0xfffff800239abb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff800238bac00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80002a4fc00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+		VNODE: 1
+0xfffff80010021000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80010614300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 1
+0xfffff80010614400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff800239abd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800238bb800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80010683200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+0xfffff80023a19200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+		MAP ENTRY: 4
+0xfffff80023a9a000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+0xfffff80002f1e900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800239ab500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 5
+0xfffff80002a50200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 22
+	total count: 37
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 31
+		1024: 4
+		VNODE: 1
+0xfffff80023a7fa00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff800106a4b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800238bd100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002d51800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002ac2800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff80002ec5600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023acf200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+		MAP ENTRY: 1
+0xfffff80010711200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+		MAP ENTRY: 1
+0xfffff80002f7ee00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 4
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 5
+		VNODE: 1
+0xfffff800239a9000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800239f6a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80023a7d700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023acea00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002e98200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002e98100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff800106a3b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023acec00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80010767300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002ec5500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff800238bc000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002e98400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff800239a9b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002f1f100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80002f1e700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023a20c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023a7e100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a99500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800239a9600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010767200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff800239f7500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80023a7d800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002f1fb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a9a400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023acf500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a7fc00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010724700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800239a8900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010711300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80023a19700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800106a0900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800106a4e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80002f1e000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023acfb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+		MAP ENTRY: 2
+		TURNSTILE: 1
+0xfffff80002ec5d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800238bd800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800238ba700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80023a9cc00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010021100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800106a1400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+0xfffff80023a7ea00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 3
+		MAP ENTRY: 1
+0xfffff800238bb100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800239a9800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010683100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800239f6000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 3
+0xfffff8001077ac00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80023a9cd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002f1fd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80023a7f500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+0xfffff80002e98000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a7fe00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80002ec5200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 3
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80023acf300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a9a300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800239a8b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800238bb600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff80010711800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff800238bb300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+0xfffff800239ab600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+0xfffff80023acd700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+0xfffff80010683400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a18600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800238bd300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff80023ace400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff80010711400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff80010767b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800106a4500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80023a7e500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002527800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 25
+	total count: 33
+	globals: 3
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 29
+0xfffff80023a7ec00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80023acfd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+0xfffff80010597200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 1
+0xfffff80010597300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010597400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 1
+0xfffff80010597500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff8001064f300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010597600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 5
+		MAP ENTRY: 1
+0xfffff80010597700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010597800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80010597900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010597b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 1
+0xfffff80010597c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff8001064f700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 1
+0xfffff80010597d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010597e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80010598000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 2
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010598100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 1
+0xfffff80010598200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010598300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 5
+		MAP ENTRY: 2
+0xfffff80010598400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001064f800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010598500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010598600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 2
+0xfffff80010598700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010598800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 3
+0xfffff80010598900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff8001064f900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff80010598b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff8001064fa00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 3
+0xfffff80010598d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff8001064fb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 3
+0xfffff80010599000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff8001064fc00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010599100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001064fd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010599200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001064fe00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010599300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010599400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80010599500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010599700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 2
+0xfffff80010599800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010599900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80010599a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010650000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010599c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010599e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 2
+0xfffff8001059a000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001059a200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff8001059a300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010650100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff8001059a400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001059a500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff8001059a600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001059a700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff8001059a800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff8001059a900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff8001059aa00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010650200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80010675a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010675c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010675d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010650300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff800105fb000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff800105fb100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fb200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fb400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fb500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fb600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fb800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fba00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fbb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fbd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fbe00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fc000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fc100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800239a8200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 1
+0xfffff80010614800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff800105fc300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800239a8d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff800105fc500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fc700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 9
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 6
+		MAP ENTRY: 3
+0xfffff800105fc800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800239ab700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 5
+0xfffff800105fcb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010020e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fcd00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fd000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fd100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fd200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff800105fd300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fd500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff800105fd600:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fd800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 8
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 5
+		MAP ENTRY: 3
+0xfffff800105fd900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fdb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 3
+0xfffff800105fdc00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800106e2e00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80002ec5300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 4
+0xfffff800105fe000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff8001064ec00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fe100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 7
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 4
+		MAP ENTRY: 3
+0xfffff800105fe200:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fe400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 6
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 3
+0xfffff800105fe700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff800105fe900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010650c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010534900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105feb00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010534b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fec00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010534d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fed00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010510900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff800105fee00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 3
+0xfffff80010674800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010674900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010674c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010597000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010674d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010597100:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80010021800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002fe2b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 3
+		MAP ENTRY: 2
+0xfffff80002f65400:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010021500:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 2
+0xfffff80002fe3d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002fe2900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010615000:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615700:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615800:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff80010615d00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 4
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+		VNODE: 1
+0xfffff800106a3900:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 0
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 1
+		VM OBJECT: 1
+		MAP ENTRY: 3
+0xfffff80010674a00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80002f1e300:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 1
+		MAP ENTRY: 2
+0xfffff80010711b00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 3
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		VM OBJECT: 2
+		MAP ENTRY: 1
+0xfffff80002e98c00:
+	struct name: vm_object
+	zone name: VM OBJECT
+	ref count: 1
+	total count: 5
+	globals: 0
+	registers: 0
+	kstack: 0
+	slabs:
+		64 Bucket: 2
+		VM OBJECT: 1
+		MAP ENTRY: 2
